@@ -26,7 +26,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 19,
+    price: 1499,
     interval: 'month',
     features: [
       'Unlimited project generations',
@@ -41,7 +41,7 @@ export const pricingPlans: PricingPlan[] = [
   {
     id: 'team',
     name: 'Team',
-    price: 49,
+    price: 3999,
     interval: 'month',
     features: [
       'Everything in Pro',

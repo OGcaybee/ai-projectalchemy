@@ -14,6 +14,7 @@ import TemplateDetail from "./pages/TemplateDetail";
 import Generate from "./pages/Generate";
 import Pricing from "./pages/Pricing";
 import Docs from "./pages/Docs";
+import ExpertRequest from "./pages/ExpertRequest";
 import Navbar from "./components/Navbar";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/generate" element={<Generate />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/docs" element={<Docs />} />
+            <Route path="/create-by-experts" element={<ExpertRequest />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

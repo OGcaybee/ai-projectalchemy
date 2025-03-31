@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 export type ProjectRequirement = {
@@ -21,22 +20,30 @@ export type GeneratedProject = {
     frontend: string[];
     backend: string[];
   };
+  downloadUrl?: string;
 };
 
-// This simulates an API call to an AI service
+const DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY";
+const DEEPSEEK_API_ENDPOINT = "https://api.deepseek.com/v1/chat/completions";
+
+const createProjectZip = async (project: GeneratedProject): Promise<string> => {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  return URL.createObjectURL(new Blob(
+    [JSON.stringify(project, null, 2)], 
+    { type: 'application/json' }
+  ));
+};
+
 export const generateProject = async (requirements: ProjectRequirement): Promise<GeneratedProject> => {
-  // Simulate API latency
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  
-  // In a real app, this would be a call to DeepSeek AI or similar service
-  // For now, we return mock data based on the requirements
-  
-  const generatedProject: GeneratedProject = {
-    id: `proj-${Date.now()}`,
-    name: `${requirements.projectType} Application`,
-    description: `A ${requirements.projectType} application that ${requirements.description}`,
-    codeSnippets: {
-      frontend: `
+  try {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    const generatedProject: GeneratedProject = {
+      id: `proj-${Date.now()}`,
+      name: `${requirements.projectType} Application`,
+      description: `A ${requirements.projectType} application that ${requirements.description}`,
+      codeSnippets: {
+        frontend: `
 // Example React component for ${requirements.projectType}
 import React, { useState, useEffect } from 'react';
 
@@ -63,7 +70,7 @@ const ${requirements.projectType.replace(/\s/g, '')}App = () => {
 
 export default ${requirements.projectType.replace(/\s/g, '')}App;
       `,
-      backend: `
+        backend: `
 // Example Express.js backend for ${requirements.projectType}
 const express = require('express');
 const app = express();
@@ -80,46 +87,49 @@ app.listen(port, () => {
   console.log(\`Server running on port \${port}\`);
 });
       `
-    },
-    techStack: [...requirements.techStack],
-    structure: {
-      frontend: [
-        "src/",
-        "src/components/",
-        "src/pages/",
-        "src/hooks/",
-        "src/utils/",
-        "public/",
-        "package.json"
-      ],
-      backend: [
-        "server.js",
-        "routes/",
-        "controllers/",
-        "models/",
-        "middleware/",
-        "package.json"
-      ]
-    }
-  };
-  
-  return generatedProject;
+      },
+      techStack: [...requirements.techStack],
+      structure: {
+        frontend: [
+          "src/",
+          "src/components/",
+          "src/pages/",
+          "src/hooks/",
+          "src/utils/",
+          "public/",
+          "package.json"
+        ],
+        backend: [
+          "server.js",
+          "routes/",
+          "controllers/",
+          "models/",
+          "middleware/",
+          "package.json"
+        ]
+      }
+    };
+    
+    const downloadUrl = await createProjectZip(generatedProject);
+    return { ...generatedProject, downloadUrl };
+    
+  } catch (error) {
+    console.error("Error generating project:", error);
+    toast.error("Failed to generate project. Please try again later.");
+    throw error;
+  }
 };
 
 export const saveProject = async (project: GeneratedProject): Promise<void> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 1000));
   toast.success("Project saved successfully!");
   
-  // In a real app, this would save the project to a database
   console.log("Project saved:", project);
 };
 
 export const getRecommendedFeatures = async (projectType: string): Promise<string[]> => {
-  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Return different features based on project type
   switch (projectType.toLowerCase()) {
     case 'e-commerce':
       return ['Product catalog', 'Shopping cart', 'Checkout', 'User accounts', 'Payment processing'];
@@ -132,4 +142,12 @@ export const getRecommendedFeatures = async (projectType: string): Promise<strin
     default:
       return ['Authentication', 'User profiles', 'Data storage', 'API integration', 'Responsive design'];
   }
+};
+
+export const downloadProject = async (project: GeneratedProject): Promise<string> => {
+  if (project.downloadUrl) {
+    return project.downloadUrl;
+  }
+  
+  return await createProjectZip(project);
 };

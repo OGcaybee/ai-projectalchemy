@@ -4,6 +4,10 @@ import Hero from "@/components/Hero";
 import FeatureCards from "@/components/FeatureCards";
 import PopularTemplates from "@/components/PopularTemplates";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "react-router-dom";
+import { Check, ArrowRight, IndianRupee, Code, Bot, Rocket, Users } from "lucide-react";
 
 const Index = () => {
   return (
@@ -11,6 +15,189 @@ const Index = () => {
       <Hero />
       <FeatureCards />
       <PopularTemplates />
+      
+      {/* Create with Experts Section */}
+      <section className="py-16 bg-brand-purple/5">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Create Custom Projects with Experts</h2>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                Need something more tailored to your specific needs? Our expert team will create a custom project just for you.
+              </p>
+            </div>
+            
+            <Card className="border-brand-purple/30">
+              <CardHeader>
+                <CardTitle>Expert-Crafted Projects</CardTitle>
+                <CardDescription>
+                  Get a professionally built project created by our team of experienced developers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium">Custom Requirements</h3>
+                        <p className="text-sm text-gray-500">Your project built exactly to your specifications</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium">Professional Quality</h3>
+                        <p className="text-sm text-gray-500">High-quality code with best practices</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium">Full Documentation</h3>
+                        <p className="text-sm text-gray-500">Detailed documentation included</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium">Expert Support</h3>
+                        <p className="text-sm text-gray-500">Direct communication with our team</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Link to="/create-by-experts" className="w-full">
+                  <Button className="w-full bg-brand-purple hover:bg-brand-purple/90">
+                    Request Expert Project
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          </div>
+        </div>
+      </section>
+      
+      {/* Pricing Section Preview */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold mb-4">Simple, Transparent Pricing</h2>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                Choose the plan that's right for you or your team
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Free</CardTitle>
+                  <div className="mt-4 flex items-end">
+                    <span className="text-4xl font-bold flex items-center">
+                      <IndianRupee className="h-6 w-6 mb-1" />
+                      0
+                    </span>
+                    <span className="text-gray-500 ml-2">
+                      /month
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                      <span>3 project generations</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                      <span>Basic templates</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Link to="/pricing" className="w-full">
+                    <Button variant="outline" className="w-full">View Plans</Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+              
+              <Card className="border-brand-purple shadow-lg">
+                <div className="absolute top-0 right-0 bg-brand-purple text-white text-xs px-3 py-1">
+                  Popular
+                </div>
+                <CardHeader>
+                  <CardTitle>Pro</CardTitle>
+                  <div className="mt-4 flex items-end">
+                    <span className="text-4xl font-bold flex items-center">
+                      <IndianRupee className="h-6 w-6 mb-1" />
+                      1,499
+                    </span>
+                    <span className="text-gray-500 ml-2">
+                      /month
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                      <span>Unlimited generations</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                      <span>All templates</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Link to="/pricing" className="w-full">
+                    <Button className="w-full bg-brand-purple hover:bg-brand-purple/90">View Plans</Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Team</CardTitle>
+                  <div className="mt-4 flex items-end">
+                    <span className="text-4xl font-bold flex items-center">
+                      <IndianRupee className="h-6 w-6 mb-1" />
+                      3,999
+                    </span>
+                    <span className="text-gray-500 ml-2">
+                      /month
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                      <span>Team collaboration</span>
+                    </li>
+                    <li className="flex items-start">
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                      <span>API access</span>
+                    </li>
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Link to="/pricing" className="w-full">
+                    <Button variant="outline" className="w-full">View Plans</Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+      
       <Footer />
     </div>
   );

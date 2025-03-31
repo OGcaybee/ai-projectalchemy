@@ -2,10 +2,16 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
 
+type SubscriptionTier = 'free' | 'pro' | 'team';
+
 type User = {
   id: string;
   email: string;
   name: string;
+  points: number;
+  projectsGenerated: number;
+  subscriptionTier: SubscriptionTier;
+  subscriptionActive: boolean;
 } | null;
 
 type AuthContextType = {
@@ -15,6 +21,9 @@ type AuthContextType = {
   signup: (email: string, name: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  updateUserPoints: (newPoints: number) => void;
+  incrementProjectCount: () => void;
+  checkRemainingGenerations: () => { canGenerate: boolean, remaining: number };
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,7 +62,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const user = {
           id: "user-123",
           email,
-          name: email.split('@')[0]
+          name: email.split('@')[0],
+          points: 3,
+          projectsGenerated: 0,
+          subscriptionTier: 'free' as SubscriptionTier,
+          subscriptionActive: true
         };
         
         setUser(user);
@@ -81,7 +94,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const user = {
           id: "user-" + Date.now(),
           email,
-          name
+          name,
+          points: 3,
+          projectsGenerated: 0,
+          subscriptionTier: 'free' as SubscriptionTier,
+          subscriptionActive: true
         };
         
         setUser(user);
@@ -104,13 +121,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     toast.success("Logged out successfully");
   };
 
+  const updateUserPoints = (newPoints: number) => {
+    if (user) {
+      const updatedUser = { ...user, points: newPoints };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+  };
+
+  const incrementProjectCount = () => {
+    if (user) {
+      const updatedUser = { 
+        ...user, 
+        projectsGenerated: user.projectsGenerated + 1,
+        points: user.subscriptionTier === 'free' ? user.points - 1 : user.points
+      };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+  };
+
+  const checkRemainingGenerations = () => {
+    if (!user) {
+      return { canGenerate: false, remaining: 0 };
+    }
+
+    if (user.subscriptionTier === 'free') {
+      return { 
+        canGenerate: user.points > 0, 
+        remaining: user.points 
+      };
+    }
+    
+    // Pro or team users have unlimited generations
+    return { canGenerate: true, remaining: Infinity };
+  };
+
   const value = {
     user,
     isLoading,
     login,
     signup,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    updateUserPoints,
+    incrementProjectCount,
+    checkRemainingGenerations
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
