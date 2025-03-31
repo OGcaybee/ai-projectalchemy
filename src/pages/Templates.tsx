@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from "react";
-import { getAllTemplates, getTemplatesByCategory, Template } from "@/services/templateService";
+import { getAllTemplates, getTemplatesByCategory, Template, downloadTemplate } from "@/services/templateService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
+import { Download, ExternalLink, Search } from "lucide-react";
+import { toast } from "sonner";
 
 const Templates = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -14,8 +15,9 @@ const Templates = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
-  const categories = ["All", "Dashboard", "E-commerce", "Portfolio", "Blog"];
+  const categories = ["All", "Dashboard", "E-commerce", "Portfolio", "Blog", "SaaS", "Mobile App", "Landing Page"];
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -54,6 +56,40 @@ const Templates = () => {
       setFilteredTemplates(filtered);
     }
   }, [searchQuery, templates]);
+
+  const handleDownload = async (template: Template, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setDownloadingId(template.id);
+    try {
+      const downloadUrl = await downloadTemplate(template);
+      
+      // Create an anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success(`${template.name} template download started`);
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      toast.error("Failed to download template");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleOpenGithub = (githubUrl: string | undefined, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (githubUrl) {
+      window.open(githubUrl, '_blank');
+    }
+  };
 
   return (
     <div className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-[calc(100vh-64px)]">
@@ -130,6 +166,11 @@ const Templates = () => {
                       <div>
                         <h3 className="font-medium text-lg mb-1">{template.name}</h3>
                         <p className="text-sm text-gray-500 mb-3">{template.description}</p>
+                        {template.author && (
+                          <p className="text-xs text-gray-400 mb-2">
+                            Created by: {template.author}
+                          </p>
+                        )}
                       </div>
                       <span className="text-xs font-medium px-2 py-1 bg-gray-100 rounded-full">
                         {template.category}
@@ -144,6 +185,27 @@ const Templates = () => {
                           {tech}
                         </span>
                       ))}
+                    </div>
+                    <div className="flex justify-between mt-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => handleDownload(template, e)}
+                        disabled={downloadingId === template.id}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        {downloadingId === template.id ? "Downloading..." : "Download"}
+                      </Button>
+                      {template.githubUrl && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={(e) => handleOpenGithub(template.githubUrl, e)}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          GitHub
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

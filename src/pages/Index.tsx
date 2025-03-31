@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Check, ArrowRight, IndianRupee, Code, Bot, Rocket, Users } from "lucide-react";
+import PlanFeatureList from "@/components/pricing/PlanFeatureList";
 
 const Index = () => {
   return (
@@ -36,37 +37,19 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium">Custom Requirements</h3>
-                        <p className="text-sm text-gray-500">Your project built exactly to your specifications</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium">Professional Quality</h3>
-                        <p className="text-sm text-gray-500">High-quality code with best practices</p>
-                      </div>
-                    </div>
+                  <div>
+                    <PlanFeatureList features={[
+                      "Custom Requirements",
+                      "Professional Quality",
+                      "Best Practices Implementation"
+                    ]} />
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium">Full Documentation</h3>
-                        <p className="text-sm text-gray-500">Detailed documentation included</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3 mt-0.5" />
-                      <div>
-                        <h3 className="font-medium">Expert Support</h3>
-                        <p className="text-sm text-gray-500">Direct communication with our team</p>
-                      </div>
-                    </div>
+                  <div>
+                    <PlanFeatureList features={[
+                      "Full Documentation",
+                      "Expert Support",
+                      "Direct Communication"
+                    ]} />
                   </div>
                 </div>
               </CardContent>
@@ -109,16 +92,10 @@ const Index = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3" />
-                      <span>3 project generations</span>
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3" />
-                      <span>Basic templates</span>
-                    </li>
-                  </ul>
+                  <PlanFeatureList features={[
+                    "3 project generations",
+                    "Basic templates"
+                  ]} />
                 </CardContent>
                 <CardFooter>
                   <Link to="/pricing" className="w-full">
@@ -144,16 +121,11 @@ const Index = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3" />
-                      <span>Unlimited generations</span>
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3" />
-                      <span>All templates</span>
-                    </li>
-                  </ul>
+                  <PlanFeatureList features={[
+                    "Unlimited generations",
+                    "All templates",
+                    "Priority support"
+                  ]} />
                 </CardContent>
                 <CardFooter>
                   <Link to="/pricing" className="w-full">
@@ -176,16 +148,11 @@ const Index = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-3">
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3" />
-                      <span>Team collaboration</span>
-                    </li>
-                    <li className="flex items-start">
-                      <Check className="h-5 w-5 text-green-500 mr-3" />
-                      <span>API access</span>
-                    </li>
-                  </ul>
+                  <PlanFeatureList features={[
+                    "Team collaboration",
+                    "API access",
+                    "Dedicated support"
+                  ]} />
                 </CardContent>
                 <CardFooter>
                   <Link to="/pricing" className="w-full">
