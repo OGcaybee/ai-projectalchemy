@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -12,11 +12,17 @@ import { Menu } from "lucide-react";
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
   };
 
   return (
@@ -86,11 +92,11 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-700">Hi, {user?.name}</span>
+                <span className="text-sm text-gray-700 font-bold">Hi, {user?.name}</span>
                 <Button
                   variant="outline"
-                  onClick={logout}
-                  className="text-sm"
+                  onClick={handleLogout}
+                  className="text-sm bg-black text-white hover:bg-black/80"
                 >
                   Logout
                 </Button>
@@ -158,13 +164,15 @@ const Navbar = () => {
                   <div className="pt-4 border-t border-gray-200">
                     {isAuthenticated ? (
                       <div className="flex flex-col space-y-4">
-                        <span className="text-sm text-gray-700">Hi, {user?.name}</span>
+                        <span className="text-sm text-gray-700 font-bold">Hi, {user?.name}</span>
                         <Button
                           variant="outline"
                           onClick={() => {
                             logout();
                             setIsMobileMenuOpen(false);
+                            navigate("/");
                           }}
+                          className="bg-black text-white hover:bg-black/80"
                         >
                           Logout
                         </Button>

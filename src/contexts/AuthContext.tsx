@@ -36,6 +36,30 @@ export const useAuth = () => {
   return context;
 };
 
+// Simulated user database for demo purposes
+const mockUsers = [
+  {
+    id: "user-123",
+    email: "demo@example.com",
+    password: "password123",
+    name: "Demo User",
+    points: 3,
+    projectsGenerated: 0,
+    subscriptionTier: 'free' as SubscriptionTier,
+    subscriptionActive: true
+  },
+  {
+    id: "user-456",
+    email: "admin@example.com",
+    password: "admin123",
+    name: "Admin User",
+    points: 10,
+    projectsGenerated: 2,
+    subscriptionTier: 'pro' as SubscriptionTier,
+    subscriptionActive: true
+  }
+];
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   children 
 }) => {
@@ -57,24 +81,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo purposes only - in a real app, this would be a backend call
-      if (email && password) {
-        const user = {
-          id: "user-123",
-          email,
-          name: email.split('@')[0],
-          points: 3,
-          projectsGenerated: 0,
-          subscriptionTier: 'free' as SubscriptionTier,
-          subscriptionActive: true
-        };
-        
-        setUser(user);
-        localStorage.setItem("user", JSON.stringify(user));
+      // Check for existing user (demo authentication)
+      const foundUser = mockUsers.find(
+        u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      );
+      
+      if (foundUser) {
+        // Remove password before storing in state
+        const { password: _, ...userWithoutPassword } = foundUser;
+        setUser(userWithoutPassword);
+        localStorage.setItem("user", JSON.stringify(userWithoutPassword));
         toast.success("Successfully logged in!");
-      } else {
-        throw new Error("Invalid credentials");
+        return;
       }
+      
+      throw new Error("Invalid credentials");
     } catch (error) {
       toast.error("Login failed. Please check your credentials.");
       throw error;
@@ -89,26 +110,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo purposes only - in a real app, this would be a backend call
-      if (email && name && password) {
-        const user = {
-          id: "user-" + Date.now(),
-          email,
-          name,
-          points: 3,
-          projectsGenerated: 0,
-          subscriptionTier: 'free' as SubscriptionTier,
-          subscriptionActive: true
-        };
-        
-        setUser(user);
-        localStorage.setItem("user", JSON.stringify(user));
-        toast.success("Account created successfully!");
-      } else {
-        throw new Error("Invalid information");
+      // Check if email is already in use
+      if (mockUsers.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+        throw new Error("Email already in use");
       }
+      
+      // For demo purposes only - in a real app, this would be a backend call
+      const newUser = {
+        id: "user-" + Date.now(),
+        email,
+        name,
+        points: 3,
+        projectsGenerated: 0,
+        subscriptionTier: 'free' as SubscriptionTier,
+        subscriptionActive: true
+      };
+      
+      setUser(newUser);
+      localStorage.setItem("user", JSON.stringify(newUser));
+      toast.success("Account created successfully!");
     } catch (error) {
-      toast.error("Signup failed. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Signup failed. Please try again.";
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsLoading(false);

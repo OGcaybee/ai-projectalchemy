@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Download, Github, ExternalLink } from "lucide-react";
-import { getTemplateById, Template } from "@/services/templateService";
+import { getTemplateById, Template, downloadTemplate } from "@/services/templateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -14,7 +14,9 @@ const TemplateDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTemplate = async () => {
@@ -39,10 +41,41 @@ const TemplateDetail = () => {
   const handleUseTemplate = () => {
     if (!isAuthenticated) {
       toast.error("Please login to use this template");
+      navigate("/login");
       return;
     }
     
     toast.success("Template selected! You can now customize it.");
+  };
+
+  const handleDownload = async () => {
+    if (!template) return;
+    
+    setDownloading(true);
+    try {
+      const downloadUrl = await downloadTemplate(template);
+      
+      // Create an anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success(`${template.name} template download started`);
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      toast.error("Failed to download template");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleOpenGithub = () => {
+    if (!template || !template.githubUrl) return;
+    
+    window.open(template.githubUrl, '_blank');
   };
 
   if (loading) {
@@ -102,16 +135,16 @@ const TemplateDetail = () => {
               <ChevronLeft className="h-4 w-4 mr-2" /> Back to Templates
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold mb-2">{template.name}</h1>
-          <p className="text-gray-600">{template.description}</p>
+          <h1 className="text-3xl font-bold mb-2">{template?.name}</h1>
+          <p className="text-gray-600">{template?.description}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
               <img
-                src={template.image}
-                alt={template.name}
+                src={template?.image}
+                alt={template?.name}
                 className="w-full h-auto"
               />
             </div>
@@ -225,7 +258,7 @@ const TemplateDetail = () => {
                 <div className="mb-6">
                   <h3 className="text-xl font-medium mb-2">Template Details</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {template.techStack.map((tech) => (
+                    {template?.techStack.map((tech) => (
                       <span
                         key={tech}
                         className="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600"
@@ -237,7 +270,7 @@ const TemplateDetail = () => {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Category</span>
-                      <span className="font-medium">{template.category}</span>
+                      <span className="font-medium">{template?.category}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Popularity</span>
@@ -245,10 +278,10 @@ const TemplateDetail = () => {
                         <div className="w-20 h-2 bg-gray-200 rounded-full mr-2">
                           <div
                             className="h-full bg-brand-purple rounded-full"
-                            style={{ width: `${template.popularity}%` }}
+                            style={{ width: `${template?.popularity}%` }}
                           ></div>
                         </div>
-                        <span className="font-medium">{template.popularity}%</span>
+                        <span className="font-medium">{template?.popularity}%</span>
                       </div>
                     </div>
                     <div className="flex justify-between">
@@ -266,10 +299,21 @@ const TemplateDetail = () => {
                 </Button>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" className="w-1/2">
-                    <Download className="h-4 w-4 mr-2" /> Download
+                  <Button 
+                    variant="outline" 
+                    className="w-1/2"
+                    onClick={handleDownload}
+                    disabled={downloading}
+                  >
+                    <Download className="h-4 w-4 mr-2" /> 
+                    {downloading ? "Downloading..." : "Download"}
                   </Button>
-                  <Button variant="outline" className="w-1/2">
+                  <Button 
+                    variant="outline" 
+                    className="w-1/2"
+                    onClick={handleOpenGithub}
+                    disabled={!template?.githubUrl}
+                  >
                     <Github className="h-4 w-4 mr-2" /> GitHub
                   </Button>
                 </div>
@@ -295,9 +339,11 @@ const TemplateDetail = () => {
                   <p className="text-gray-600 mb-4">
                     Our team of experts can customize this template to fit your specific requirements.
                   </p>
-                  <Button variant="outline" className="w-full">
-                    Request Custom Work
-                  </Button>
+                  <Link to="/create-by-experts">
+                    <Button variant="outline" className="w-full">
+                      Request Custom Work
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             </div>
