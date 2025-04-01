@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
 import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
 import Generate from "./pages/Generate";
@@ -34,6 +35,7 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/templates" element={<Templates />} />
                 <Route path="/templates/:id" element={<TemplateDetail />} />
                 <Route path="/generate" element={<Generate />} />
