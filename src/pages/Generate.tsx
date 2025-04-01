@@ -88,7 +88,7 @@ const Generate = () => {
       "└── utils/"
     ];
 
-    if (template.category === "Dashboard" || template.category === "Admin Dashboard") {
+    if (template.category === "Dashboard") {
       frontendStructure.push("├── dashboard/");
       frontendStructure.push("│   ├── charts/");
       frontendStructure.push("│   └── widgets/");
@@ -151,11 +151,15 @@ const Generate = () => {
   };
 
   const handleDownloadProject = async () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) {
+      toast.error("Please select a template first");
+      return;
+    }
 
     const customizedTemplate = {
       ...selectedTemplate,
-      name: projectName || selectedTemplate.name
+      name: projectName || selectedTemplate.name,
+      customTheme: projectTheme
     };
 
     setIsDownloading(true);

@@ -63,3 +63,18 @@ export const getTemplateImagePath = (templateName: string): string => {
   // Return the path to the image
   return `/${normalizedName}.png`;
 };
+
+// New function to easily get template images from simpler filenames
+export const getSimpleTemplateThumbnail = (templateName: string): string => {
+  try {
+    const simpleName = templateName
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/[^a-z0-9]/g, '');
+      
+    return `/${simpleName}.png`;
+  } catch (error) {
+    console.error("Error getting simple template thumbnail:", error);
+    return templateThumbnails.default;
+  }
+};
