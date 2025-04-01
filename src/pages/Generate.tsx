@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,6 @@ const Generate = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get template ID from query params if available
   const queryParams = new URLSearchParams(location.search);
   const templateIdFromQuery = queryParams.get('template');
   
@@ -36,7 +34,6 @@ const Generate = () => {
     backend: [] as string[]
   });
 
-  // Theme options for customization
   const themeOptions = [
     { value: "default", label: "Default (Purple/Blue)", color: "#7c3aed" },
     { value: "green", label: "Nature Green", color: "#059669" },
@@ -46,7 +43,6 @@ const Generate = () => {
     { value: "pink", label: "Rose Pink", color: "#db2777" },
   ];
 
-  // Load template if ID is provided
   useEffect(() => {
     const loadTemplate = async () => {
       if (selectedTemplateId) {
@@ -56,7 +52,6 @@ const Generate = () => {
           if (template) {
             setSelectedTemplate(template);
             setProjectName(template.name);
-            // Generate mock project structure based on template type
             generateMockStructure(template);
           }
         } catch (error) {
@@ -71,7 +66,6 @@ const Generate = () => {
     loadTemplate();
   }, [selectedTemplateId]);
 
-  // Generate mock project structure based on template
   const generateMockStructure = (template: Template) => {
     const frontendStructure = [
       "src/",
@@ -94,7 +88,6 @@ const Generate = () => {
       "└── utils/"
     ];
 
-    // Add template-specific folders
     if (template.category === "Dashboard" || template.category === "Admin Dashboard") {
       frontendStructure.push("├── dashboard/");
       frontendStructure.push("│   ├── charts/");
@@ -124,13 +117,11 @@ const Generate = () => {
       return;
     }
 
-    // If already authenticated, proceed to step 2
     if (isAuthenticated) {
       setStep(2);
       return;
     }
 
-    // If not authenticated, redirect to login
     toast.error("Please login to generate a project");
     navigate("/login");
   };
@@ -142,7 +133,6 @@ const Generate = () => {
       return;
     }
 
-    // Check if user has remaining generations
     const { canGenerate, remaining } = checkRemainingGenerations();
     
     if (!canGenerate) {
@@ -150,10 +140,8 @@ const Generate = () => {
       return;
     }
 
-    // Increment project count
     incrementProjectCount();
     
-    // Show toast with remaining generations if on free plan
     if (user?.subscriptionTier === 'free' && remaining > 0) {
       toast(`You have ${remaining - 1} free generations remaining`);
     }
@@ -165,7 +153,6 @@ const Generate = () => {
   const handleDownloadProject = async () => {
     if (!selectedTemplate) return;
 
-    // Update template name with user's project name
     const customizedTemplate = {
       ...selectedTemplate,
       name: projectName || selectedTemplate.name
@@ -175,7 +162,6 @@ const Generate = () => {
     try {
       const downloadUrl = await downloadTemplate(customizedTemplate);
       
-      // Create an anchor element and trigger download
       const a = document.createElement('a');
       a.href = downloadUrl;
       a.download = `${projectName.replace(/\s+/g, '-').toLowerCase() || 'project'}.zip`;
@@ -201,7 +187,6 @@ export default function ${projectName.replace(/\s+/g, '') || "MainComponent"}() 
   const [data, setData] = useState([]);
   
   useEffect(() => {
-    // Fetch data from your API
     fetch('/api/data')
       .then(response => response.json())
       .then(result => setData(result))
@@ -231,19 +216,15 @@ const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/${projectName.toLowerCase().replace(/\s+/g, '_') || "app_database"}')
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Define routes
 app.get('/api/data', async (req, res) => {
   try {
-    // Example data - in a real app, this would come from your database
     const data = [
       { id: 1, title: 'Item 1', description: 'Description for item 1' },
       { id: 2, title: 'Item 2', description: 'Description for item 2' },
@@ -285,261 +266,432 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
           )}
         </div>
 
-        {step === 1 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Select a Template</CardTitle>
-              <CardDescription>
-                Choose a template as the starting point for your project
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {isLoading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : selectedTemplate ? (
-                <div className="space-y-4">
-                  <div className="rounded-lg overflow-hidden border border-gray-200">
-                    <img 
-                      src={selectedTemplate.image} 
-                      alt={selectedTemplate.name} 
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="p-4">
-                      <h3 className="text-xl font-semibold">{selectedTemplate.name}</h3>
-                      <p className="text-gray-600 mt-2">{selectedTemplate.description}</p>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {selectedTemplate.techStack.map((tech) => (
-                          <span
-                            key={tech}
-                            className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
+        <Tabs defaultValue="template">
+          <TabsList className="w-full mb-8">
+            <TabsTrigger value="template" className="flex-1">Template Customizer</TabsTrigger>
+            <TabsTrigger value="ai" className="flex-1">AI Generator</TabsTrigger>
+            <TabsTrigger value="custom-builder" className="flex-1">Customized Template Builder</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="template">
+            {step === 1 ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Select a Template</CardTitle>
+                  <CardDescription>
+                    Choose a template as the starting point for your project
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-32 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : selectedTemplate ? (
+                    <div className="space-y-4">
+                      <div className="rounded-lg overflow-hidden border border-gray-200">
+                        <img 
+                          src={selectedTemplate.image} 
+                          alt={selectedTemplate.name} 
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="p-4">
+                          <h3 className="text-xl font-semibold">{selectedTemplate.name}</h3>
+                          <p className="text-gray-600 mt-2">{selectedTemplate.description}</p>
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {selectedTemplate.techStack.map((tech) => (
+                              <span
+                                key={tech}
+                                className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
+                              >
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <Label htmlFor="projectName">Project Name</Label>
+                        <Input
+                          id="projectName"
+                          placeholder="Enter a name for your project"
+                          value={projectName}
+                          onChange={(e) => setProjectName(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center p-8">
+                      <p className="mb-4">Please select a template from the templates page first.</p>
+                      <Button
+                        onClick={() => navigate('/templates')}
+                        className="bg-brand-purple hover:bg-brand-purple/90"
+                      >
+                        Browse Templates
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-end space-x-2">
+                  {selectedTemplate && (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate('/templates')}
+                      >
+                        Change Template
+                      </Button>
+                      <Button
+                        onClick={handleGenerateProject}
+                        className="bg-brand-purple hover:bg-brand-purple/90"
+                      >
+                        Continue to Customization
+                      </Button>
+                    </>
+                  )}
+                </CardFooter>
+              </Card>
+            ) : (
+              <div className="space-y-8">
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>Customize Your Project</CardTitle>
+                        <CardDescription className="mt-2">
+                          Personalize your template before downloading
+                        </CardDescription>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStep(1)}
+                        className="flex items-center gap-1"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Template
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="projectName">Project Name</Label>
+                      <Input
+                        id="projectName"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        placeholder="Enter a name for your project"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Theme Color</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {themeOptions.map((theme) => (
+                          <div 
+                            key={theme.value}
+                            className={`p-4 border rounded-md cursor-pointer transition-all ${
+                              projectTheme === theme.value ? 'border-2 border-brand-purple' : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => setProjectTheme(theme.value)}
                           >
-                            {tech}
-                          </span>
+                            <div 
+                              className="w-full h-4 rounded-full mb-2"
+                              style={{ backgroundColor: theme.color }}
+                            ></div>
+                            <p className="text-sm text-center">{theme.label}</p>
+                          </div>
                         ))}
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <Label htmlFor="projectName">Project Name</Label>
-                    <Input
-                      id="projectName"
-                      placeholder="Enter a name for your project"
-                      value={projectName}
-                      onChange={(e) => setProjectName(e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center p-8">
-                  <p className="mb-4">Please select a template from the templates page first.</p>
-                  <Button
-                    onClick={() => navigate('/templates')}
-                    className="bg-brand-purple hover:bg-brand-purple/90"
-                  >
-                    Browse Templates
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-end space-x-2">
-              {selectedTemplate && (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate('/templates')}
-                  >
-                    Change Template
-                  </Button>
-                  <Button
-                    onClick={handleGenerateProject}
-                    className="bg-brand-purple hover:bg-brand-purple/90"
-                  >
-                    Continue to Customization
-                  </Button>
-                </>
-              )}
-            </CardFooter>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {/* Project customization section */}
+                    
+                    <div className="flex justify-between gap-4 pt-4">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <Save className="h-4 w-4 mr-2" /> Save Project
+                      </Button>
+                      <Button
+                        onClick={handleDownloadProject}
+                        disabled={isDownloading}
+                        className="flex-1 bg-brand-purple hover:bg-brand-purple/90"
+                      >
+                        <Download className="h-4 w-4 mr-2" /> 
+                        {isDownloading ? "Downloading..." : "Download Project"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle>{projectName || selectedTemplate?.name}</CardTitle>
+                        <CardDescription className="mt-2">
+                          {selectedTemplate?.description}
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                        >
+                          <FileCode className="h-4 w-4 mr-2" />
+                          Preview Code
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {selectedTemplate?.techStack.map((tech) => (
+                        <span
+                          key={tech}
+                          className="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded-full"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  </CardHeader>
+
+                  <CardContent>
+                    <Tabs defaultValue="code">
+                      <TabsList className="mb-4">
+                        <TabsTrigger value="code">Code Snippets</TabsTrigger>
+                        <TabsTrigger value="structure">Project Structure</TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="code" className="space-y-6">
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-lg font-medium">Frontend Code</h3>
+                          </div>
+                          <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
+                            <pre className="text-sm">
+                              <code>{mockCodeSnippets.frontend}</code>
+                            </pre>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-lg font-medium">Backend Code</h3>
+                          </div>
+                          <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
+                            <pre className="text-sm">
+                              <code>{mockCodeSnippets.backend}</code>
+                            </pre>
+                          </div>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="structure">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div>
+                            <h3 className="text-lg font-medium mb-4">Frontend Structure</h3>
+                            <div className="bg-gray-100 p-4 rounded-md">
+                              <ul className="space-y-1 font-mono text-sm">
+                                {mockProjectStructure.frontend.map((item, index) => (
+                                  <li key={index} className="whitespace-pre">
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h3 className="text-lg font-medium mb-4">Backend Structure</h3>
+                            <div className="bg-gray-100 p-4 rounded-md">
+                              <ul className="space-y-1 font-mono text-sm">
+                                {mockProjectStructure.backend.map((item, index) => (
+                                  <li key={index} className="whitespace-pre">
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="ai">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>Customize Your Project</CardTitle>
-                    <CardDescription className="mt-2">
-                      Personalize your template before downloading
-                    </CardDescription>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setStep(1)}
-                    className="flex items-center gap-1"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Template
-                  </Button>
-                </div>
+                <CardTitle>AI Code Generator</CardTitle>
+                <CardDescription>
+                  Generate a complete project with AI based on your description
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="projectName">Project Name</Label>
+                <div className="space-y-4">
+                  <Label htmlFor="ai-project-name">Project Name</Label>
                   <Input
-                    id="projectName"
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="Enter a name for your project"
+                    id="ai-project-name"
+                    placeholder="Enter a name for your AI-generated project"
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label>Theme Color</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {themeOptions.map((theme) => (
-                      <div 
-                        key={theme.value}
-                        className={`p-4 border rounded-md cursor-pointer transition-all ${
-                          projectTheme === theme.value ? 'border-2 border-brand-purple' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setProjectTheme(theme.value)}
-                      >
-                        <div 
-                          className="w-full h-4 rounded-full mb-2"
-                          style={{ backgroundColor: theme.color }}
-                        ></div>
-                        <p className="text-sm text-center">{theme.label}</p>
+                <div className="space-y-4">
+                  <Label htmlFor="ai-project-description">Project Description</Label>
+                  <textarea
+                    id="ai-project-description"
+                    className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
+                    placeholder="Describe your project in detail. Include features, pages, functionality, and design preferences."
+                  ></textarea>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Frontend Framework</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2 rounded-md border p-3">
+                        <input type="radio" name="frontend" id="react" defaultChecked />
+                        <Label htmlFor="react" className="cursor-pointer">React</Label>
                       </div>
-                    ))}
+                      <div className="flex items-center space-x-2 rounded-md border p-3">
+                        <input type="radio" name="frontend" id="vue" disabled />
+                        <Label htmlFor="vue" className="cursor-pointer opacity-50">Vue (Coming Soon)</Label>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Backend Type</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2 rounded-md border p-3">
+                        <input type="radio" name="backend" id="rest" defaultChecked />
+                        <Label htmlFor="rest" className="cursor-pointer">REST API</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 rounded-md border p-3">
+                        <input type="radio" name="backend" id="graphql" disabled />
+                        <Label htmlFor="graphql" className="cursor-pointer opacity-50">GraphQL (Coming Soon)</Label>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex justify-between gap-4 pt-4">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Save className="h-4 w-4 mr-2" /> Save Project
-                  </Button>
-                  <Button
-                    onClick={handleDownloadProject}
-                    disabled={isDownloading}
-                    className="flex-1 bg-brand-purple hover:bg-brand-purple/90"
-                  >
-                    <Download className="h-4 w-4 mr-2" /> 
-                    {isDownloading ? "Downloading..." : "Download Project"}
-                  </Button>
-                </div>
               </CardContent>
+              <CardFooter className="flex justify-end">
+                <Button
+                  onClick={() => toast.info("AI Generation coming soon in full functionality!")}
+                  className="bg-brand-purple hover:bg-brand-purple/90"
+                >
+                  Generate Project
+                </Button>
+              </CardFooter>
             </Card>
+          </TabsContent>
 
-            {/* Project details and code section */}
+          <TabsContent value="custom-builder">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{projectName || selectedTemplate?.name}</CardTitle>
-                    <CardDescription className="mt-2">
-                      {selectedTemplate?.description}
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
+                <CardTitle>Customized Template Builder</CardTitle>
+                <CardDescription>
+                  Quickly customize and download pre-built templates
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {Object.entries({
+                    dashboard: "Dashboard",
+                    ecommerce: "E-commerce Store",
+                    blog: "Content Blog",
+                    portfolio: "Portfolio Site",
+                    landingPage: "Landing Page",
+                    adminDashboard: "Admin Dashboard"
+                  }).map(([key, name]) => (
+                    <div 
+                      key={key}
+                      onClick={() => {
+                        setSelectedTemplateId(key);
+                        toast.success(`${name} template selected`);
+                      }}
+                      className="relative cursor-pointer rounded-lg border-2 transition-all hover:shadow-md overflow-hidden group"
                     >
-                      <FileCode className="h-4 w-4 mr-2" />
-                      Preview Code
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {selectedTemplate?.techStack.map((tech) => (
-                    <span
-                      key={tech}
-                      className="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded-full"
-                    >
-                      {tech}
-                    </span>
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
+                      <img 
+                        src={`/lovable-uploads/${key}-template.png`} 
+                        alt={name}
+                        className="w-full aspect-video object-cover"
+                      />
+                      <div className="p-3 border-t">
+                        <h3 className="font-medium">{name}</h3>
+                        <p className="text-xs text-gray-500">Click to select</p>
+                      </div>
+                      {selectedTemplateId === key && (
+                        <div className="absolute top-2 right-2 bg-brand-purple text-white text-xs px-2 py-1 rounded-full z-20">
+                          Selected
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
-              </CardHeader>
 
-              <CardContent>
-                <Tabs defaultValue="code">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="code">Code Snippets</TabsTrigger>
-                    <TabsTrigger value="structure">Project Structure</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="code" className="space-y-6">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-medium">Frontend Code</h3>
-                      </div>
-                      <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
-                        <pre className="text-sm">
-                          <code>{mockCodeSnippets.frontend}</code>
-                        </pre>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-lg font-medium">Backend Code</h3>
-                      </div>
-                      <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
-                        <pre className="text-sm">
-                          <code>{mockCodeSnippets.backend}</code>
-                        </pre>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="structure">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Frontend Structure</h3>
-                        <div className="bg-gray-100 p-4 rounded-md">
-                          <ul className="space-y-1 font-mono text-sm">
-                            {mockProjectStructure.frontend.map((item, index) => (
-                              <li key={index} className="whitespace-pre">
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
+                {selectedTemplateId && (
+                  <>
+                    <div className="border-t border-gray-200 pt-6 mt-6">
+                      <h3 className="text-lg font-medium mb-4">Customize Your Template</h3>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="custom-project-name">Project Name</Label>
+                          <Input
+                            id="custom-project-name"
+                            value={projectName}
+                            onChange={(e) => setProjectName(e.target.value)}
+                            placeholder="Enter a name for your project"
+                          />
                         </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-lg font-medium mb-4">Backend Structure</h3>
-                        <div className="bg-gray-100 p-4 rounded-md">
-                          <ul className="space-y-1 font-mono text-sm">
-                            {mockProjectStructure.backend.map((item, index) => (
-                              <li key={index} className="whitespace-pre">
-                                {item}
-                              </li>
+                        
+                        <div className="space-y-2">
+                          <Label>Theme Color</Label>
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                            {themeOptions.map((theme) => (
+                              <div 
+                                key={theme.value}
+                                className={`p-2 border rounded-md cursor-pointer transition-all ${
+                                  projectTheme === theme.value ? 'border-2 border-brand-purple' : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                                onClick={() => setProjectTheme(theme.value)}
+                              >
+                                <div 
+                                  className="w-full h-4 rounded-full mb-2"
+                                  style={{ backgroundColor: theme.color }}
+                                ></div>
+                                <p className="text-xs text-center truncate">{theme.label}</p>
+                              </div>
                             ))}
-                          </ul>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </TabsContent>
-                </Tabs>
+
+                    <div className="flex justify-end pt-4">
+                      <Button
+                        onClick={handleDownloadProject}
+                        disabled={isDownloading}
+                        className="bg-brand-purple hover:bg-brand-purple/90"
+                      >
+                        <Download className="h-4 w-4 mr-2" /> 
+                        {isDownloading ? "Downloading..." : "Generate & Download"}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
       
-      {/* Subscription Prompt Modal */}
       <SubscriptionPrompt 
         open={showSubscriptionPrompt} 
         onClose={() => setShowSubscriptionPrompt(false)} 

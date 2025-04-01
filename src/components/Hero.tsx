@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 const Hero = () => {
   return (
     <section className="relative py-20 md:py-28 overflow-hidden">
-      {/* Background with gradient */}
+      {/* Background with gradient only - no image */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-blue-50 to-white" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(124,58,237,0.2),transparent_60%)]" />
