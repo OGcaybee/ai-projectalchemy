@@ -22,24 +22,44 @@ export const backgroundImages = {
   hero: "/lovable-uploads/hero-banner.png"
 };
 
-// Function to get a template thumbnail by name or fallback to default
+/**
+ * Function to get a template thumbnail by name or fallback to default
+ * This function will first try to find an exact match, then a partial match,
+ * and finally fall back to the default if no match is found.
+ */
 export const getTemplateThumbnail = (name: string): string => {
+  // If the provided name is empty, return the default thumbnail
+  if (!name) return templateThumbnails.default;
+  
   const normalizedName = name.toLowerCase().replace(/\s+/g, '');
   
-  // Check for direct matches in templateThumbnails
+  // 1. Try to find exact match in templateThumbnails
   for (const [key, value] of Object.entries(templateThumbnails)) {
     if (key.toLowerCase() === normalizedName) {
       return value;
     }
   }
   
-  // Check for partial matches in templateThumbnails
+  // 2. Try to find partial match in templateThumbnails
   for (const [key, value] of Object.entries(templateThumbnails)) {
     if (normalizedName.includes(key.toLowerCase()) || key.toLowerCase().includes(normalizedName)) {
       return value;
     }
   }
   
-  // If no match found, return default
+  // 3. If no match found, return default
   return templateThumbnails.default;
+};
+
+// Simplifies adding new template images by just putting the file in public folder
+// Example: getTemplateImagePath("admin-dashboard") => "/admin-dashboard.png"
+export const getTemplateImagePath = (templateName: string): string => {
+  // Normalize the template name to kebab-case format
+  const normalizedName = templateName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+  
+  // Return the path to the image
+  return `/${normalizedName}.png`;
 };

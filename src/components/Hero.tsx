@@ -28,7 +28,7 @@ const Hero = () => {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.2s" }}>
             <Link to="/generate">
               <Button size="lg" className="bg-brand-purple hover:bg-brand-purple/90 shadow-lg shadow-purple-500/20">
-                Start with AI
+                Start with Templates
               </Button>
             </Link>
             <Link to="/templates">
@@ -36,18 +36,6 @@ const Hero = () => {
                 Browse Templates
               </Button>
             </Link>
-          </div>
-          
-          <div className="mt-16 flex justify-center animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <div className="bg-white/80 p-4 rounded-lg shadow-xl max-w-xl backdrop-blur-sm border border-gray-100">
-              <div className="rounded-md overflow-hidden shadow-md">
-                <img 
-                  src="/lovable-uploads/dashboard-preview.png" 
-                  alt="Project preview" 
-                  className="w-full rounded-md" 
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>

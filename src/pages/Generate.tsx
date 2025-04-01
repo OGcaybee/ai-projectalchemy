@@ -3,40 +3,37 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ProjectRequirement, GeneratedProject, generateProject, getRecommendedFeatures, saveProject, downloadProject } from "@/services/aiService";
+import { getTemplateById, Template, downloadTemplate } from "@/services/templateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Copy, Download, Save, ArrowLeft, Palette, Edit, FileCode } from "lucide-react";
+import { Download, Save, ArrowLeft, Palette, FileCode } from "lucide-react";
 import SubscriptionPrompt from "@/components/SubscriptionPrompt";
-import { useNavigate } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
+import { useNavigate, useLocation } from "react-router-dom";
+import Footer from "@/components/Footer";
 
 const Generate = () => {
   const { isAuthenticated, user, incrementProjectCount, checkRemainingGenerations } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get template ID from query params if available
+  const queryParams = new URLSearchParams(location.search);
+  const templateIdFromQuery = queryParams.get('template');
   
   const [step, setStep] = useState(1);
-  const [projectType, setProjectType] = useState("");
-  const [description, setDescription] = useState("");
-  const [features, setFeatures] = useState<string[]>([]);
-  const [customFeature, setCustomFeature] = useState("");
-  const [techStack, setTechStack] = useState<string[]>([]);
-  const [suggestedFeatures, setSuggestedFeatures] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [generatedProject, setGeneratedProject] = useState<GeneratedProject | null>(null);
-  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(templateIdFromQuery || "");
   const [projectName, setProjectName] = useState("");
   const [projectTheme, setProjectTheme] = useState<string>("default");
-  const [isCopied, setIsCopied] = useState({
-    frontend: false,
-    backend: false
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
+  const [mockProjectStructure, setMockProjectStructure] = useState({
+    frontend: [] as string[],
+    backend: [] as string[]
   });
 
   // Theme options for customization
@@ -49,41 +46,99 @@ const Generate = () => {
     { value: "pink", label: "Rose Pink", color: "#db2777" },
   ];
 
-  const handleAddCustomFeature = () => {
-    if (customFeature.trim() !== "" && !features.includes(customFeature.trim())) {
-      setFeatures([...features, customFeature.trim()]);
-      setCustomFeature("");
+  // Load template if ID is provided
+  useEffect(() => {
+    const loadTemplate = async () => {
+      if (selectedTemplateId) {
+        setIsLoading(true);
+        try {
+          const template = await getTemplateById(selectedTemplateId);
+          if (template) {
+            setSelectedTemplate(template);
+            setProjectName(template.name);
+            // Generate mock project structure based on template type
+            generateMockStructure(template);
+          }
+        } catch (error) {
+          console.error("Error loading template:", error);
+          toast.error("Failed to load template");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadTemplate();
+  }, [selectedTemplateId]);
+
+  // Generate mock project structure based on template
+  const generateMockStructure = (template: Template) => {
+    const frontendStructure = [
+      "src/",
+      "├── components/",
+      "│   ├── layout/",
+      "│   ├── ui/",
+      "│   └── features/",
+      "├── pages/",
+      "├── hooks/",
+      "├── styles/",
+      "└── utils/"
+    ];
+
+    const backendStructure = [
+      "server/",
+      "├── controllers/",
+      "├── models/",
+      "├── routes/",
+      "├── middleware/",
+      "└── utils/"
+    ];
+
+    // Add template-specific folders
+    if (template.category === "Dashboard" || template.category === "Admin Dashboard") {
+      frontendStructure.push("├── dashboard/");
+      frontendStructure.push("│   ├── charts/");
+      frontendStructure.push("│   └── widgets/");
+    } else if (template.category === "E-commerce") {
+      frontendStructure.push("├── store/");
+      frontendStructure.push("│   ├── products/");
+      frontendStructure.push("│   ├── cart/");
+      frontendStructure.push("│   └── checkout/");
+      backendStructure.push("├── payment/");
+    } else if (template.category === "Blog") {
+      frontendStructure.push("├── blog/");
+      frontendStructure.push("│   ├── posts/");
+      frontendStructure.push("│   └── comments/");
+      backendStructure.push("├── content/");
     }
+
+    setMockProjectStructure({
+      frontend: frontendStructure,
+      backend: backendStructure
+    });
   };
 
-  const handleRemoveFeature = (feature: string) => {
-    setFeatures(features.filter((f) => f !== feature));
-  };
-
-  const handleToggleTech = (tech: string) => {
-    if (techStack.includes(tech)) {
-      setTechStack(techStack.filter((t) => t !== tech));
-    } else {
-      setTechStack([...techStack, tech]);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddCustomFeature();
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!isAuthenticated) {
-      toast.error("Please login to generate a project");
-      navigate("/login");
+  const handleSelectTemplate = async () => {
+    if (!selectedTemplateId) {
+      toast.error("Please select a template");
       return;
     }
 
-    if (!projectType || !description || features.length === 0 || techStack.length === 0) {
-      toast.error("Please fill in all required fields");
+    // If already authenticated, proceed to step 2
+    if (isAuthenticated) {
+      setStep(2);
+      return;
+    }
+
+    // If not authenticated, redirect to login
+    toast.error("Please login to generate a project");
+    navigate("/login");
+  };
+
+  const handleGenerateProject = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to generate a project");
+      navigate("/login");
       return;
     }
 
@@ -95,86 +150,35 @@ const Generate = () => {
       return;
     }
 
-    const requirements: ProjectRequirement = {
-      projectType,
-      description,
-      features,
-      techStack,
-    };
-
-    setIsGenerating(true);
-
-    try {
-      const project = await generateProject(requirements);
-      setProjectName(project.name); // Set initial project name
-      setGeneratedProject(project);
-      setStep(2);
-      
-      // Increment project count and decrease points if on free plan
-      incrementProjectCount();
-      
-      // Show toast with remaining generations if on free plan
-      if (user?.subscriptionTier === 'free' && remaining > 0) {
-        toast(`You have ${remaining - 1} free generations remaining`);
-      }
-      
-    } catch (error) {
-      console.error("Error generating project:", error);
-      toast.error("Failed to generate project. Please try again.");
-    } finally {
-      setIsGenerating(false);
+    // Increment project count
+    incrementProjectCount();
+    
+    // Show toast with remaining generations if on free plan
+    if (user?.subscriptionTier === 'free' && remaining > 0) {
+      toast(`You have ${remaining - 1} free generations remaining`);
     }
-  };
 
-  const handleSaveProject = async () => {
-    if (!generatedProject) return;
-
-    // Update project name before saving
-    const updatedProject = {
-      ...generatedProject,
-      name: projectName || generatedProject.name
-    };
-
-    try {
-      await saveProject(updatedProject);
-      setGeneratedProject(updatedProject);
-      toast.success("Project saved successfully!");
-    } catch (error) {
-      console.error("Error saving project:", error);
-      toast.error("Failed to save project");
-    }
-  };
-
-  const handleCopyCode = (type: "frontend" | "backend") => {
-    if (!generatedProject) return;
-
-    navigator.clipboard.writeText(generatedProject.codeSnippets[type]);
-    setIsCopied({ ...isCopied, [type]: true });
-
-    setTimeout(() => {
-      setIsCopied({ ...isCopied, [type]: false });
-    }, 2000);
-
-    toast.success(`${type === "frontend" ? "Frontend" : "Backend"} code copied to clipboard`);
+    toast.success("Project customization ready!");
+    setStep(2);
   };
 
   const handleDownloadProject = async () => {
-    if (!generatedProject) return;
+    if (!selectedTemplate) return;
 
-    // Update project with current name before downloading
-    const updatedProject = {
-      ...generatedProject,
-      name: projectName || generatedProject.name
+    // Update template name with user's project name
+    const customizedTemplate = {
+      ...selectedTemplate,
+      name: projectName || selectedTemplate.name
     };
 
     setIsDownloading(true);
     try {
-      const downloadUrl = await downloadProject(updatedProject);
+      const downloadUrl = await downloadTemplate(customizedTemplate);
       
       // Create an anchor element and trigger download
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = `${updatedProject.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
+      a.download = `${projectName.replace(/\s+/g, '-').toLowerCase() || 'project'}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -188,49 +192,80 @@ const Generate = () => {
     }
   };
 
-  useEffect(() => {
-    if (projectType) {
-      setIsLoading(true);
-      getRecommendedFeatures(projectType)
-        .then((features) => {
-          setSuggestedFeatures(features);
-        })
-        .catch((error) => {
-          console.error("Error fetching recommended features:", error);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    }
-  }, [projectType]);
+  const mockCodeSnippets = {
+    frontend: `// Example React component for ${projectName || "your project"}
+import React, { useState, useEffect } from 'react';
+import { Button } from './ui/button';
 
+export default function ${projectName.replace(/\s+/g, '') || "MainComponent"}() {
+  const [data, setData] = useState([]);
+  
   useEffect(() => {
-    // Check remaining generations on component mount
-    if (isAuthenticated) {
-      const { remaining, canGenerate } = checkRemainingGenerations();
-      // If user has no generations left and is on free plan, show subscription prompt
-      if (!canGenerate && user?.subscriptionTier === 'free') {
-        toast.info(`You have used all your free generations. Upgrade to continue.`);
-      } else if (user?.subscriptionTier === 'free') {
-        toast.info(`You have ${remaining} free project generations remaining.`);
-      }
-    }
-  }, [isAuthenticated]);
+    // Fetch data from your API
+    fetch('/api/data')
+      .then(response => response.json())
+      .then(result => setData(result))
+      .catch(error => console.error('Error fetching data:', error));
+  }, []);
+  
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Welcome to ${projectName || "your project"}</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {data.map(item => (
+          <div key={item.id} className="border p-4 rounded-lg">
+            <h2 className="text-lg font-semibold">{item.title}</h2>
+            <p className="mt-2">{item.description}</p>
+            <Button className="mt-4">View Details</Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}`,
+    backend: `// Example Express server for ${projectName || "your project"}
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
 
-  const techOptions = [
-    "React", "Vue", "Angular", "Next.js", "Node.js", 
-    "Express", "MongoDB", "PostgreSQL", "Firebase", 
-    "AWS", "GraphQL", "REST API", "Tailwind CSS", 
-    "Material UI", "Bootstrap", "TypeScript", "JavaScript"
-  ];
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/${projectName.toLowerCase().replace(/\s+/g, '_') || "app_database"}')
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Define routes
+app.get('/api/data', async (req, res) => {
+  try {
+    // Example data - in a real app, this would come from your database
+    const data = [
+      { id: 1, title: 'Item 1', description: 'Description for item 1' },
+      { id: 2, title: 'Item 2', description: 'Description for item 2' },
+      { id: 3, title: 'Item 3', description: 'Description for item 3' },
+    ];
+    
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
+  };
 
   return (
     <div className="py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-[calc(100vh-64px)]">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">AI Project Generator</h1>
+          <h1 className="text-4xl font-bold mb-4">Template Customizer</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Describe your project requirements and our AI will generate a complete project structure with code.
+            Select and customize a template to generate your next project
           </p>
           
           {isAuthenticated && user && (
@@ -253,133 +288,82 @@ const Generate = () => {
         {step === 1 ? (
           <Card>
             <CardHeader>
-              <CardTitle>Project Requirements</CardTitle>
+              <CardTitle>Select a Template</CardTitle>
               <CardDescription>
-                Provide details about the project you want to build
+                Choose a template as the starting point for your project
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="projectType">Project Type</Label>
-                <Input
-                  id="projectType"
-                  placeholder="E.g., E-commerce, Blog, Dashboard, Social Media"
-                  value={projectType}
-                  onChange={(e) => setProjectType(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Project Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe what your project should do..."
-                  className="min-h-24"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label>Features</Label>
-                {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                ) : (
-                  <>
-                    {suggestedFeatures.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {suggestedFeatures.map((feature) => (
-                          <div
-                            key={feature}
-                            className="flex items-center space-x-2"
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : selectedTemplate ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg overflow-hidden border border-gray-200">
+                    <img 
+                      src={selectedTemplate.image} 
+                      alt={selectedTemplate.name} 
+                      className="w-full h-48 object-cover"
+                    />
+                    <div className="p-4">
+                      <h3 className="text-xl font-semibold">{selectedTemplate.name}</h3>
+                      <p className="text-gray-600 mt-2">{selectedTemplate.description}</p>
+                      <div className="flex flex-wrap gap-2 mt-4">
+                        {selectedTemplate.techStack.map((tech) => (
+                          <span
+                            key={tech}
+                            className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm"
                           >
-                            <Checkbox
-                              id={feature}
-                              checked={features.includes(feature)}
-                              onCheckedChange={() => {
-                                if (features.includes(feature)) {
-                                  handleRemoveFeature(feature);
-                                } else {
-                                  setFeatures([...features, feature]);
-                                }
-                              }}
-                            />
-                            <Label htmlFor={feature}>{feature}</Label>
-                          </div>
+                            {tech}
+                          </span>
                         ))}
                       </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {features.map(
-                        (feature) =>
-                          !suggestedFeatures.includes(feature) && (
-                            <div
-                              key={feature}
-                              className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center gap-2"
-                            >
-                              <span>{feature}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveFeature(feature)}
-                                className="text-gray-500 hover:text-gray-700"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )
-                      )}
                     </div>
-
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add custom feature"
-                        value={customFeature}
-                        onChange={(e) => setCustomFeature(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddCustomFeature}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <Label>Tech Stack</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {techOptions.map((tech) => (
-                    <div key={tech} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`tech-${tech}`}
-                        checked={techStack.includes(tech)}
-                        onCheckedChange={() => handleToggleTech(tech)}
-                      />
-                      <Label htmlFor={`tech-${tech}`}>{tech}</Label>
-                    </div>
-                  ))}
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Label htmlFor="projectName">Project Name</Label>
+                    <Input
+                      id="projectName"
+                      placeholder="Enter a name for your project"
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex justify-end mt-6">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isGenerating}
-                  className="bg-brand-purple hover:bg-brand-purple/90"
-                >
-                  {isGenerating ? "Generating..." : "Generate Project"}
-                </Button>
-              </div>
+              ) : (
+                <div className="text-center p-8">
+                  <p className="mb-4">Please select a template from the templates page first.</p>
+                  <Button
+                    onClick={() => navigate('/templates')}
+                    className="bg-brand-purple hover:bg-brand-purple/90"
+                  >
+                    Browse Templates
+                  </Button>
+                </div>
+              )}
             </CardContent>
+            <CardFooter className="flex justify-end space-x-2">
+              {selectedTemplate && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/templates')}
+                  >
+                    Change Template
+                  </Button>
+                  <Button
+                    onClick={handleGenerateProject}
+                    className="bg-brand-purple hover:bg-brand-purple/90"
+                  >
+                    Continue to Customization
+                  </Button>
+                </>
+              )}
+            </CardFooter>
           </Card>
         ) : (
           <div className="space-y-8">
@@ -390,7 +374,7 @@ const Generate = () => {
                   <div>
                     <CardTitle>Customize Your Project</CardTitle>
                     <CardDescription className="mt-2">
-                      Personalize your generated project before downloading
+                      Personalize your template before downloading
                     </CardDescription>
                   </div>
                   <Button
@@ -400,7 +384,7 @@ const Generate = () => {
                     className="flex items-center gap-1"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back to Requirements
+                    Back to Template
                   </Button>
                 </div>
               </CardHeader>
@@ -439,7 +423,6 @@ const Generate = () => {
                 <div className="flex justify-between gap-4 pt-4">
                   <Button
                     variant="outline"
-                    onClick={handleSaveProject}
                     className="flex-1"
                   >
                     <Save className="h-4 w-4 mr-2" /> Save Project
@@ -461,25 +444,24 @@ const Generate = () => {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle>{generatedProject?.name}</CardTitle>
+                    <CardTitle>{projectName || selectedTemplate?.name}</CardTitle>
                     <CardDescription className="mt-2">
-                      {generatedProject?.description}
+                      {selectedTemplate?.description}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setStep(3)}
                     >
                       <FileCode className="h-4 w-4 mr-2" />
-                      Preview Project
+                      Preview Code
                     </Button>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-4">
-                  {generatedProject?.techStack.map((tech) => (
+                  {selectedTemplate?.techStack.map((tech) => (
                     <span
                       key={tech}
                       className="bg-gray-100 text-gray-800 px-3 py-1 text-sm rounded-full"
@@ -501,22 +483,10 @@ const Generate = () => {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="text-lg font-medium">Frontend Code</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyCode("frontend")}
-                        >
-                          {isCopied.frontend ? (
-                            <Check className="h-4 w-4 mr-2" />
-                          ) : (
-                            <Copy className="h-4 w-4 mr-2" />
-                          )}
-                          {isCopied.frontend ? "Copied" : "Copy"}
-                        </Button>
                       </div>
                       <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
                         <pre className="text-sm">
-                          <code>{generatedProject?.codeSnippets.frontend}</code>
+                          <code>{mockCodeSnippets.frontend}</code>
                         </pre>
                       </div>
                     </div>
@@ -524,22 +494,10 @@ const Generate = () => {
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="text-lg font-medium">Backend Code</h3>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyCode("backend")}
-                        >
-                          {isCopied.backend ? (
-                            <Check className="h-4 w-4 mr-2" />
-                          ) : (
-                            <Copy className="h-4 w-4 mr-2" />
-                          )}
-                          {isCopied.backend ? "Copied" : "Copy"}
-                        </Button>
                       </div>
                       <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
                         <pre className="text-sm">
-                          <code>{generatedProject?.codeSnippets.backend}</code>
+                          <code>{mockCodeSnippets.backend}</code>
                         </pre>
                       </div>
                     </div>
@@ -550,10 +508,9 @@ const Generate = () => {
                       <div>
                         <h3 className="text-lg font-medium mb-4">Frontend Structure</h3>
                         <div className="bg-gray-100 p-4 rounded-md">
-                          <ul className="space-y-2">
-                            {generatedProject?.structure.frontend.map((item, index) => (
-                              <li key={index} className="flex items-center">
-                                <span className="mr-2 text-brand-purple">▸</span>
+                          <ul className="space-y-1 font-mono text-sm">
+                            {mockProjectStructure.frontend.map((item, index) => (
+                              <li key={index} className="whitespace-pre">
                                 {item}
                               </li>
                             ))}
@@ -564,10 +521,9 @@ const Generate = () => {
                       <div>
                         <h3 className="text-lg font-medium mb-4">Backend Structure</h3>
                         <div className="bg-gray-100 p-4 rounded-md">
-                          <ul className="space-y-2">
-                            {generatedProject?.structure.backend.map((item, index) => (
-                              <li key={index} className="flex items-center">
-                                <span className="mr-2 text-brand-purple">▸</span>
+                          <ul className="space-y-1 font-mono text-sm">
+                            {mockProjectStructure.backend.map((item, index) => (
+                              <li key={index} className="whitespace-pre">
                                 {item}
                               </li>
                             ))}
@@ -588,6 +544,8 @@ const Generate = () => {
         open={showSubscriptionPrompt} 
         onClose={() => setShowSubscriptionPrompt(false)} 
       />
+      
+      <Footer />
     </div>
   );
 };
