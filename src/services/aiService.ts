@@ -337,6 +337,8 @@ export const getRecommendedFeatures = async (projectType: string): Promise<strin
       return ['Analytics charts', 'Data tables', 'Filtering', 'User management', 'Notifications'];
     case 'social media':
       return ['User profiles', 'Posts/Timeline', 'Messaging', 'Notifications', 'Friend connections'];
+    case 'portfolio':
+      return ['Project showcase', 'About section', 'Skills display', 'Contact form', 'Resume download'];
     default:
       return ['Authentication', 'User profiles', 'Data storage', 'API integration', 'Responsive design'];
   }
