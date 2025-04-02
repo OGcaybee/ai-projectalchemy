@@ -16,7 +16,7 @@ const Footer = () => {
                 <path d="M12 8V16" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"/>
                 <path d="M16 12L8 12" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              Project Alchemy
+              Thynk AI
             </Link>
             <p className="text-sm text-gray-600 mb-4">
               Build complete projects instantly with AI-powered code generation.
@@ -117,7 +117,7 @@ const Footer = () => {
         </div>
         <div className="border-t border-gray-200 pt-8">
           <p className="text-sm text-gray-500 text-center">
-            &copy; {currentYear} Project Alchemy. All rights reserved.
+            &copy; {currentYear} Thynk AI. All rights reserved.
           </p>
         </div>
       </div>

@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Save, ArrowLeft, Palette, FileCode } from "lucide-react";
 import SubscriptionPrompt from "@/components/SubscriptionPrompt";
 import { useNavigate, useLocation } from "react-router-dom";
-import Footer from "@/components/Footer";
 import ProjectCustomizationForm from "@/components/ai/ProjectCustomizationForm";
 import { GeneratedProject } from "@/services/codeLlamaService";
 
@@ -642,7 +641,7 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
                       >
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
                         <img 
-                          src={`/lovable-uploads/${key}-template.png`} 
+                          src={`../../public/template-icons/${key}-template.png`} 
                           alt={name}
                           className="w-full aspect-video object-cover"
                         />
@@ -721,8 +720,6 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
         open={showSubscriptionPrompt} 
         onClose={() => setShowSubscriptionPrompt(false)} 
       />
-      
-      <Footer />
     </div>
   );
 };
