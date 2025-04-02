@@ -12,6 +12,8 @@ import { Download, Save, ArrowLeft, Palette, FileCode } from "lucide-react";
 import SubscriptionPrompt from "@/components/SubscriptionPrompt";
 import { useNavigate, useLocation } from "react-router-dom";
 import Footer from "@/components/Footer";
+import ProjectCustomizationForm from "@/components/ai/ProjectCustomizationForm";
+import { GeneratedProject } from "@/services/codeLlamaService";
 
 const Generate = () => {
   const { isAuthenticated, user, incrementProjectCount, checkRemainingGenerations } = useAuth();
@@ -33,6 +35,7 @@ const Generate = () => {
     frontend: [] as string[],
     backend: [] as string[]
   });
+  const [generatedProject, setGeneratedProject] = useState<GeneratedProject | null>(null);
 
   const themeOptions = [
     { value: "default", label: "Default (Purple/Blue)", color: "#7c3aed" },
@@ -180,6 +183,10 @@ const Generate = () => {
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handleProjectGenerated = (project: GeneratedProject) => {
+    setGeneratedProject(project);
   };
 
   const mockCodeSnippets = {
@@ -595,103 +602,117 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
           </TabsContent>
 
           <TabsContent value="custom-builder">
-            <Card>
-              <CardHeader>
-                <CardTitle>Customized Template Builder</CardTitle>
-                <CardDescription>
-                  Quickly customize and download pre-built templates
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {Object.entries({
-                    dashboard: "Dashboard",
-                    ecommerce: "E-commerce Store",
-                    blog: "Content Blog",
-                    portfolio: "Portfolio Site",
-                    landingPage: "Landing Page",
-                    adminDashboard: "Admin Dashboard"
-                  }).map(([key, name]) => (
-                    <div 
-                      key={key}
-                      onClick={() => {
-                        setSelectedTemplateId(key);
-                        toast.success(`${name} template selected`);
-                      }}
-                      className="relative cursor-pointer rounded-lg border-2 transition-all hover:shadow-md overflow-hidden group"
-                    >
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
-                      <img 
-                        src={`/lovable-uploads/${key}-template.png`} 
-                        alt={name}
-                        className="w-full aspect-video object-cover"
-                      />
-                      <div className="p-3 border-t">
-                        <h3 className="font-medium">{name}</h3>
-                        <p className="text-xs text-gray-500">Click to select</p>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI-Powered Project Generator</CardTitle>
+                  <CardDescription>
+                    Define your project requirements and let our AI generate a working application for you
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ProjectCustomizationForm onGenerated={handleProjectGenerated} />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Customized Template Builder</CardTitle>
+                  <CardDescription>
+                    Quickly customize and download pre-built templates
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {Object.entries({
+                      dashboard: "Dashboard",
+                      ecommerce: "E-commerce Store",
+                      blog: "Content Blog",
+                      portfolio: "Portfolio Site",
+                      landingPage: "Landing Page",
+                      adminDashboard: "Admin Dashboard"
+                    }).map(([key, name]) => (
+                      <div 
+                        key={key}
+                        onClick={() => {
+                          setSelectedTemplateId(key);
+                          toast.success(`${name} template selected`);
+                        }}
+                        className="relative cursor-pointer rounded-lg border-2 transition-all hover:shadow-md overflow-hidden group"
+                      >
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
+                        <img 
+                          src={`/lovable-uploads/${key}-template.png`} 
+                          alt={name}
+                          className="w-full aspect-video object-cover"
+                        />
+                        <div className="p-3 border-t">
+                          <h3 className="font-medium">{name}</h3>
+                          <p className="text-xs text-gray-500">Click to select</p>
+                        </div>
+                        {selectedTemplateId === key && (
+                          <div className="absolute top-2 right-2 bg-brand-purple text-white text-xs px-2 py-1 rounded-full z-20">
+                            Selected
+                          </div>
+                        )}
                       </div>
-                      {selectedTemplateId === key && (
-                        <div className="absolute top-2 right-2 bg-brand-purple text-white text-xs px-2 py-1 rounded-full z-20">
-                          Selected
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                {selectedTemplateId && (
-                  <>
-                    <div className="border-t border-gray-200 pt-6 mt-6">
-                      <h3 className="text-lg font-medium mb-4">Customize Your Template</h3>
-                      
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="custom-project-name">Project Name</Label>
-                          <Input
-                            id="custom-project-name"
-                            value={projectName}
-                            onChange={(e) => setProjectName(e.target.value)}
-                            placeholder="Enter a name for your project"
-                          />
-                        </div>
+                  {selectedTemplateId && (
+                    <>
+                      <div className="border-t border-gray-200 pt-6 mt-6">
+                        <h3 className="text-lg font-medium mb-4">Customize Your Template</h3>
                         
-                        <div className="space-y-2">
-                          <Label>Theme Color</Label>
-                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                            {themeOptions.map((theme) => (
-                              <div 
-                                key={theme.value}
-                                className={`p-2 border rounded-md cursor-pointer transition-all ${
-                                  projectTheme === theme.value ? 'border-2 border-brand-purple' : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                                onClick={() => setProjectTheme(theme.value)}
-                              >
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="custom-project-name">Project Name</Label>
+                            <Input
+                              id="custom-project-name"
+                              value={projectName}
+                              onChange={(e) => setProjectName(e.target.value)}
+                              placeholder="Enter a name for your project"
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label>Theme Color</Label>
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                              {themeOptions.map((theme) => (
                                 <div 
-                                  className="w-full h-4 rounded-full mb-2"
-                                  style={{ backgroundColor: theme.color }}
-                                ></div>
-                                <p className="text-xs text-center truncate">{theme.label}</p>
-                              </div>
-                            ))}
+                                  key={theme.value}
+                                  className={`p-2 border rounded-md cursor-pointer transition-all ${
+                                    projectTheme === theme.value ? 'border-2 border-brand-purple' : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                  onClick={() => setProjectTheme(theme.value)}
+                                >
+                                  <div 
+                                    className="w-full h-4 rounded-full mb-2"
+                                    style={{ backgroundColor: theme.color }}
+                                  ></div>
+                                  <p className="text-xs text-center truncate">{theme.label}</p>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex justify-end pt-4">
-                      <Button
-                        onClick={handleDownloadProject}
-                        disabled={isDownloading}
-                        className="bg-brand-purple hover:bg-brand-purple/90"
-                      >
-                        <Download className="h-4 w-4 mr-2" /> 
-                        {isDownloading ? "Downloading..." : "Generate & Download"}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="flex justify-end pt-4">
+                        <Button
+                          onClick={handleDownloadProject}
+                          disabled={isDownloading}
+                          className="bg-brand-purple hover:bg-brand-purple/90"
+                        >
+                          <Download className="h-4 w-4 mr-2" /> 
+                          {isDownloading ? "Downloading..." : "Generate & Download"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

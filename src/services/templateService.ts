@@ -4,7 +4,7 @@ export type Template = {
   id: string;
   name: string;
   description: string;
-  category: 'Dashboard' | 'E-commerce' | 'Portfolio' | 'Blog' | 'SaaS' | 'Mobile App' | 'Landing Page' | 'Other';
+  category: 'Dashboard' | 'E-commerce' | 'Portfolio' | 'Blog' | 'SaaS' | 'Mobile App' | 'Landing Page' | 'Other' | 'Admin Dashboard';
   image: string;
   techStack: string[];
   popularity: number;
