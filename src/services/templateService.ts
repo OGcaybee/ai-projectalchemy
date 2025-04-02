@@ -1,5 +1,5 @@
 
-import { templateThumbnails, getTemplateThumbnail } from "@/assets/template-thumbnails";
+import { templateThumbnails } from "@/assets/template-thumbnails";
 import JSZip from "jszip";
 
 export type Template = {
@@ -15,7 +15,7 @@ export type Template = {
   customTheme?: string;
 };
 
-// Updated template data with real-world projects
+// Updated template data with real-world projects and working repositories
 const templates: Template[] = [
   {
     id: "template-1",
@@ -129,25 +129,69 @@ const templates: Template[] = [
   },
   {
     id: "template-11",
-    name: "Admin Dashboard Pro",
+    name: "Material Tailwind Dashboard",
     description: "Feature-rich admin panel with dark mode and multiple layouts",
     category: "Admin Dashboard",
     image: templateThumbnails.adminDashboard,
-    techStack: ["React", "Redux", "Material UI", "Chart.js"],
+    techStack: ["React", "Tailwind CSS", "Material UI", "Chart.js"],
     popularity: 68,
     author: "themesberg",
     githubUrl: "https://github.com/themesberg/material-tailwind-dashboard-react"
   },
   {
     id: "template-12",
-    name: "Photography Portfolio",
-    description: "Minimalist portfolio for photographers with gallery view",
+    name: "Leerob.io Portfolio",
+    description: "Minimalist portfolio by Vercel's VP of Product",
     category: "Portfolio",
     image: templateThumbnails.portfolio,
-    techStack: ["React", "Next.js", "Tailwind CSS", "Framer Motion"],
+    techStack: ["React", "Next.js", "Tailwind CSS", "MDX"],
     popularity: 65,
     author: "leerob",
     githubUrl: "https://github.com/leerob/leerob.io"
+  },
+  {
+    id: "template-13",
+    name: "T3 Stack Starter",
+    description: "Full-stack starter with tRPC, Prisma, and Next.js",
+    category: "SaaS",
+    image: templateThumbnails.saas,
+    techStack: ["Next.js", "tRPC", "Prisma", "TypeScript"],
+    popularity: 89,
+    author: "t3-oss",
+    githubUrl: "https://github.com/t3-oss/create-t3-app"
+  },
+  {
+    id: "template-14",
+    name: "Shopify Storefront",
+    description: "Headless Shopify storefront using React and GraphQL",
+    category: "E-commerce",
+    image: templateThumbnails.ecommerce,
+    techStack: ["React", "Shopify", "GraphQL", "Tailwind CSS"],
+    popularity: 83,
+    author: "Shopify",
+    githubUrl: "https://github.com/Shopify/storefront-api-examples"
+  },
+  {
+    id: "template-15",
+    name: "ChatGPT Clone",
+    description: "AI chat application with OpenAI integration",
+    category: "SaaS",
+    image: templateThumbnails.saas,
+    techStack: ["React", "Node.js", "OpenAI API", "Tailwind CSS"],
+    popularity: 91,
+    author: "mckaywrigley",
+    githubUrl: "https://github.com/mckaywrigley/chatbot-ui"
+  },
+  {
+    id: "template-16",
+    name: "Travel Agency Website",
+    description: "Modern travel website with booking functionality",
+    category: "Landing Page",
+    image: templateThumbnails.landingPage,
+    techStack: ["React", "Next.js", "Framer Motion", "Tailwind CSS"],
+    popularity: 77,
+    author: "adrianhajdin",
+    githubUrl: "https://github.com/adrianhajdin/project_travel_advisor"
   }
 ];
 
@@ -172,239 +216,22 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
   return templates.find(template => template.id === id);
 };
 
-// Improved download function that creates a real, functional zip file
+// This function now redirects to GitHub instead of generating a ZIP file
 export const downloadTemplate = async (template: Template): Promise<string> => {
   try {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Get the theme colors based on the custom theme selection
-    const themeColors = getThemeColors(template.customTheme);
-    
-    // Create project files with the proper structure
-    const projectFiles = {
-      // HTML entry point
-      "index.html": `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${template.name}</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="./styles/main.css">
-</head>
-<body>
-  <div id="root"></div>
-  <script src="./src/main.js" type="module"></script>
-</body>
-</html>`,
-
-      // Main CSS file
-      "styles/main.css": `:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  color: #333;
-  line-height: 1.5;
-}
-
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-primary:hover {
-  background-color: var(--secondary-color);
-}`,
-
-      // Main JS file
-      "src/main.js": `import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
-import App from './App.js'
-
-createApp(App).mount('#root')`,
-
-      // App component
-      "src/App.js": `export default {
-  name: 'App',
-  data() {
-    return {
-      appName: '${template.name}',
-      description: '${template.description}',
-      features: [
-        'Responsive design',
-        'Modern UI components',
-        'Customizable themes',
-        'Easy to integrate',
-        'Well documented'
-      ]
+    // Redirect to GitHub directly
+    if (template.githubUrl) {
+      return template.githubUrl;
+    } else {
+      throw new Error("Repository URL not available");
     }
-  },
-  template: \`
-    <div class="min-h-screen bg-gray-100">
-      <header class="bg-white shadow">
-        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 class="text-3xl font-bold text-gray-900" style="color: var(--primary-color)">{{ appName }}</h1>
-        </div>
-      </header>
-      <main>
-        <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div class="px-4 py-6 sm:px-0">
-            <div class="border-4 border-dashed border-gray-200 rounded-lg p-4">
-              <p class="text-lg text-center mb-4">{{ description }}</p>
-              
-              <div class="mt-8">
-                <h2 class="text-xl font-semibold mb-4" style="color: var(--secondary-color)">Features</h2>
-                <ul class="space-y-2">
-                  <li v-for="feature in features" class="flex items-start">
-                    <span class="mr-2" style="color: var(--accent-color)">✓</span>
-                    <span>{{ feature }}</span>
-                  </li>
-                </ul>
-              </div>
-              
-              <div class="mt-8 text-center">
-                <button class="btn-primary">
-                  Get Started
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-      <footer class="bg-white shadow mt-8 py-4">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p class="text-center text-gray-500">
-            Built with ${template.techStack.join(', ')}
-          </p>
-        </div>
-      </footer>
-    </div>
-  \`
-}`,
-
-      // README file
-      "README.md": `# ${template.name}
-
-${template.description}
-
-## About This Project
-
-This project was generated using the Thynk AI Template Customizer with the following configuration:
-
-- Template: ${template.name}
-- Theme: ${template.customTheme || 'Default'}
-- Tech Stack: ${template.techStack.join(', ')}
-
-## Getting Started
-
-1. Extract the ZIP file
-2. Open the folder in your favorite code editor
-3. For a quick preview, open the index.html file in your browser
-4. For development, it's recommended to set up a local server:
-   \`\`\`
-   npx serve
-   \`\`\`
-
-## Features
-
-- Responsive design for all device sizes
-- Modern UI components
-- Customizable theme colors
-- Easy to extend
-
-## Credits
-
-Original template by: ${template.author || 'Template Creator'}
-${template.githubUrl ? `GitHub: ${template.githubUrl}` : ''}
-
-## License
-
-MIT
-`,
-
-      // Package JSON (for reference)
-      "package.json": `{
-  "name": "${template.name.toLowerCase().replace(/\s+/g, '-')}",
-  "version": "1.0.0",
-  "description": "${template.description}",
-  "main": "index.html",
-  "scripts": {
-    "start": "serve .",
-    "dev": "vite",
-    "build": "vite build"
-  },
-  "dependencies": {
-    ${generateDependencies(template.techStack)}
-  },
-  "devDependencies": {
-    "vite": "^5.0.0",
-    "serve": "^14.0.0"
-  }
-}`
-    };
-    
-    // Create a real zip file using JSZip
-    const zip = new JSZip();
-    
-    // Add files to the zip
-    Object.entries(projectFiles).forEach(([path, content]) => {
-      // Handle directories
-      if (path.includes('/')) {
-        const directory = path.substring(0, path.lastIndexOf('/'));
-        if (!zip.folder(directory)) {
-          zip.folder(directory);
-        }
-      }
-      
-      zip.file(path, content);
-    });
-    
-    // Generate zip content
-    const zipContent = await zip.generateAsync({ type: "blob" });
-    
-    // Create a URL for the blob
-    return URL.createObjectURL(zipContent);
   } catch (error) {
-    console.error("Error downloading template:", error);
-    throw new Error("Failed to download template");
+    console.error("Error preparing template:", error);
+    throw new Error("Failed to prepare template");
   }
 };
 
-// Helper function to generate dependencies based on tech stack
-function generateDependencies(techStack: string[]): string {
-  const deps: Record<string, string> = {};
-  
-  if (techStack.includes('React')) deps['react'] = '"^18.2.0"';
-  if (techStack.includes('Vue')) deps['vue'] = '"^3.3.4"';
-  if (techStack.includes('Tailwind CSS')) deps['tailwindcss'] = '"^3.3.3"';
-  if (techStack.includes('TypeScript')) deps['typescript'] = '"^5.0.2"';
-  if (techStack.includes('Next.js')) deps['next'] = '"^13.4.12"';
-  if (techStack.includes('Chart.js')) deps['chart.js'] = '"^4.3.0"';
-  if (techStack.includes('Express')) deps['express'] = '"^4.18.2"';
-  if (techStack.includes('MongoDB')) deps['mongodb'] = '"^5.7.0"';
-  if (techStack.includes('Alpine.js')) deps['alpinejs'] = '"^3.12.3"';
-  if (techStack.includes('Gatsby')) deps['gatsby'] = '"^5.12.4"';
-  if (techStack.includes('GraphQL')) deps['graphql'] = '"^16.8.1"';
-  if (techStack.includes('Framer Motion')) deps['framer-motion'] = '"^10.16.4"';
-  if (techStack.includes('Material UI')) deps['@mui/material'] = '"^5.14.15"';
-  if (techStack.includes('Redux')) deps['redux'] = '"^4.2.1"';
-  if (techStack.includes('React Native')) deps['react-native'] = '"^0.72.6"';
-  if (techStack.includes('Expo')) deps['expo'] = '"^49.0.0"';
-  
-  return Object.entries(deps)
-    .map(([name, version]) => `"${name}": ${version}`)
-    .join(',\n    ');
-}
-
-// Helper function to get theme colors based on selection
+// Helper function to get theme colors based on selection (kept in case we need it)
 function getThemeColors(theme?: string): { primary: string, secondary: string, accent: string } {
   switch (theme) {
     case 'green':

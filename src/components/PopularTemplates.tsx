@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getAllTemplates, getTemplatesByCategory, Template, downloadTemplate } from "@/services/templateService";
+import { getAllTemplates, getTemplatesByCategory, Template } from "@/services/templateService";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, ExternalLink } from "lucide-react";
@@ -42,24 +42,11 @@ const PopularTemplates = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    setDownloadingId(template.id);
-    try {
-      const downloadUrl = await downloadTemplate(template);
-      
-      // Create an anchor element and trigger download
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      toast.success(`${template.name} template download started`);
-    } catch (error) {
-      console.error("Error downloading template:", error);
-      toast.error("Failed to download template");
-    } finally {
-      setDownloadingId(null);
+    if (template.githubUrl) {
+      window.open(template.githubUrl, '_blank', 'noopener,noreferrer');
+      toast.success(`Redirecting to ${template.name} repository`);
+    } else {
+      toast.error("Repository not available for this template");
     }
   };
 
@@ -149,10 +136,9 @@ const PopularTemplates = () => {
                           variant="outline" 
                           size="sm" 
                           onClick={(e) => handleDownload(template, e)}
-                          disabled={downloadingId === template.id}
                         >
                           <Download className="h-4 w-4 mr-1" />
-                          {downloadingId === template.id ? "Downloading..." : "Download"}
+                          View Repository
                         </Button>
                         {template.githubUrl && (
                           <Button 
