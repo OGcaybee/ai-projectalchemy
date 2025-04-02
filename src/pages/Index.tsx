@@ -3,7 +3,6 @@ import React from "react";
 import Hero from "@/components/Hero";
 import FeatureCards from "@/components/FeatureCards";
 import PopularTemplates from "@/components/PopularTemplates";
-import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -165,7 +164,7 @@ const Index = () => {
         </div>
       </section>
       
-      <Footer />
+      {/* Removed the duplicate Footer component */}
     </div>
   );
 };
