@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Download, Github, ExternalLink } from "lucide-react";
-import { getTemplateById, Template } from "@/services/templateService";
+import { getTemplateById, Template, downloadTemplate } from "@/services/templateService";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ const TemplateDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [template, setTemplate] = useState<Template | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -44,17 +46,30 @@ const TemplateDetail = () => {
     }
     
     toast.success("Template selected! You can now customize it.");
-    navigate(`/generate?template=${id}`);
   };
 
   const handleDownload = async () => {
-    if (!template || !template.githubUrl) {
-      toast.error("Repository not available for this template");
-      return;
-    }
+    if (!template) return;
     
-    window.open(template.githubUrl, '_blank', 'noopener,noreferrer');
-    toast.success(`Redirecting to ${template.name} repository`);
+    setDownloading(true);
+    try {
+      const downloadUrl = await downloadTemplate(template);
+      
+      // Create an anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success(`${template.name} template download started`);
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      toast.error("Failed to download template");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleOpenGithub = () => {
@@ -288,10 +303,10 @@ const TemplateDetail = () => {
                     variant="outline" 
                     className="w-1/2"
                     onClick={handleDownload}
-                    disabled={!template?.githubUrl}
+                    disabled={downloading}
                   >
                     <Download className="h-4 w-4 mr-2" /> 
-                    View Repository
+                    {downloading ? "Downloading..." : "Download"}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -305,18 +320,14 @@ const TemplateDetail = () => {
 
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h4 className="font-medium mb-3">Live Demo</h4>
-                  {template?.githubUrl ? (
-                    <a
-                      href={`https://${template.githubUrl.split('github.com/')[1].split('/')[0]}.github.io/${template.githubUrl.split('/').pop()}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-brand-purple hover:underline"
-                    >
-                      View Demo <ExternalLink className="h-4 w-4 ml-1" />
-                    </a>
-                  ) : (
-                    <span className="text-gray-500">Demo not available</span>
-                  )}
+                  <a
+                    href="#"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center text-brand-purple hover:underline"
+                  >
+                    View Demo <ExternalLink className="h-4 w-4 ml-1" />
+                  </a>
                 </div>
               </CardContent>
             </Card>

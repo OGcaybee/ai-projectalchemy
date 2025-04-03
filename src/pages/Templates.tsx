@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { getAllTemplates, getTemplatesByCategory, Template } from "@/services/templateService";
+import { getAllTemplates, getTemplatesByCategory, Template, downloadTemplate } from "@/services/templateService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ const Templates = () => {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const categories = ["All", "Dashboard", "E-commerce", "Portfolio", "Blog", "SaaS", "Mobile App", "Landing Page"];
 
@@ -60,11 +61,24 @@ const Templates = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (template.githubUrl) {
-      window.open(template.githubUrl, '_blank', 'noopener,noreferrer');
-      toast.success(`Redirecting to ${template.name} repository`);
-    } else {
-      toast.error("Repository not available for this template");
+    setDownloadingId(template.id);
+    try {
+      const downloadUrl = await downloadTemplate(template);
+      
+      // Create an anchor element and trigger download
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast.success(`${template.name} template download started`);
+    } catch (error) {
+      console.error("Error downloading template:", error);
+      toast.error("Failed to download template");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -177,9 +191,10 @@ const Templates = () => {
                         variant="outline" 
                         size="sm" 
                         onClick={(e) => handleDownload(template, e)}
+                        disabled={downloadingId === template.id}
                       >
                         <Download className="h-4 w-4 mr-1" />
-                        View Repository
+                        {downloadingId === template.id ? "Downloading..." : "Download"}
                       </Button>
                       {template.githubUrl && (
                         <Button 
