@@ -9,10 +9,9 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Download, Save, ArrowLeft, Palette, FileCode } from "lucide-react";
-import SubscriptionPrompt from "@/components/SubscriptionPrompt";
 import { useNavigate, useLocation } from "react-router-dom";
 import ProjectCustomizationForm from "@/components/ai/ProjectCustomizationForm";
-import { GeneratedProject } from "@/services/codeLlamaService";
+import { GeneratedProject } from "@/services/aiService";
 
 const Generate = () => {
   const { isAuthenticated, user, incrementProjectCount, checkRemainingGenerations } = useAuth();
@@ -29,7 +28,6 @@ const Generate = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
   const [mockProjectStructure, setMockProjectStructure] = useState({
     frontend: [] as string[],
     backend: [] as string[]
@@ -138,7 +136,7 @@ const Generate = () => {
     const { canGenerate, remaining } = checkRemainingGenerations();
     
     if (!canGenerate) {
-      setShowSubscriptionPrompt(true);
+      toast.error("You've reached your generation limit. Please upgrade your plan.");
       return;
     }
 
@@ -536,98 +534,10 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
           </TabsContent>
 
           <TabsContent value="ai">
-            <Card className="border-2 border-orange-400">
-              <CardHeader className="bg-orange-50">
-                <CardTitle className="text-orange-700">AI Code Generator</CardTitle>
-                <CardDescription className="text-orange-600">
-                  Generate a complete project with AI based on your description
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6 relative">
-                <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-10 p-6">
-                  <div className="bg-orange-100 border-2 border-orange-300 rounded-xl p-6 text-center shadow-lg max-w-md">
-                    <div className="flex justify-center mb-4">
-                      <div className="bg-orange-500 text-white p-3 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                      </div>
-                    </div>
-                    <h3 className="text-xl font-bold text-orange-800 mb-2">Pro Feature</h3>
-                    <p className="text-orange-700 mb-4">
-                      The AI Code Generator is available exclusively to Pro and Team plan subscribers.
-                    </p>
-                    <Button 
-                      className="bg-orange-500 hover:bg-orange-600 text-white w-full"
-                      onClick={() => navigate('/pricing')}
-                    >
-                      Upgrade to Pro
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <Label htmlFor="ai-project-name">Project Name</Label>
-                  <Input
-                    id="ai-project-name"
-                    placeholder="Enter a name for your AI-generated project"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Label htmlFor="ai-project-description">Project Description</Label>
-                  <textarea
-                    id="ai-project-description"
-                    className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm"
-                    placeholder="Describe your project in detail. Include features, pages, functionality, and design preferences."
-                  ></textarea>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Frontend Framework</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex items-center space-x-2 rounded-md border p-3">
-                        <input type="radio" name="frontend" id="react" defaultChecked />
-                        <Label htmlFor="react" className="cursor-pointer">React</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 rounded-md border p-3">
-                        <input type="radio" name="frontend" id="vue" disabled />
-                        <Label htmlFor="vue" className="cursor-pointer opacity-50">Vue (Coming Soon)</Label>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Backend Type</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex items-center space-x-2 rounded-md border p-3">
-                        <input type="radio" name="backend" id="rest" defaultChecked />
-                        <Label htmlFor="rest" className="cursor-pointer">REST API</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 rounded-md border p-3">
-                        <input type="radio" name="backend" id="graphql" disabled />
-                        <Label htmlFor="graphql" className="cursor-pointer opacity-50">GraphQL (Coming Soon)</Label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button
-                  className="bg-orange-500 hover:bg-orange-600"
-                  onClick={() => navigate('/pricing')}
-                >
-                  Upgrade to Generate
-                </Button>
-              </CardFooter>
-            </Card>
+            <ProjectCustomizationForm onGenerated={handleProjectGenerated} />
           </TabsContent>
         </Tabs>
       </div>
-      
-      <SubscriptionPrompt 
-        open={showSubscriptionPrompt} 
-        onClose={() => setShowSubscriptionPrompt(false)} 
-      />
     </div>
   );
 };
