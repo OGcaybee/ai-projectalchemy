@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, PlusCircle, Trash2 } from "lucide-react";
-import { ProjectRequirement, GeneratedProject, generateProject, downloadProject } from "@/services/codeLlamaService";
+import { Download, PlusCircle, Trash2, Code, ExternalLink } from "lucide-react";
+import { ProjectRequirement, GeneratedProject, generateProject, downloadProject } from "@/services/aiService";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Theme color options
 const themeOptions = [
@@ -65,6 +66,7 @@ const ProjectCustomizationForm: React.FC<ProjectCustomizationFormProps> = ({ onG
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedProject, setGeneratedProject] = useState<GeneratedProject | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [activeCodeTab, setActiveCodeTab] = useState("html");
 
   // Handle tech stack selection
   const toggleTechStack = (tech: string) => {
@@ -174,6 +176,29 @@ const ProjectCustomizationForm: React.FC<ProjectCustomizationFormProps> = ({ onG
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Parse code snippets from the project
+  const parseCodeSnippets = () => {
+    if (!generatedProject) return { html: "", css: "", js: "" };
+    
+    let html = generatedProject.codeSnippets.frontend || "";
+    let css = "";
+    let js = generatedProject.codeSnippets.backend || "";
+    
+    // Extract CSS if it's embedded in the HTML
+    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+    if (styleMatch && styleMatch[1]) {
+      css = styleMatch[1].trim();
+    }
+    
+    // Extract JS if it's embedded in the HTML
+    const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
+    if (scriptMatch && scriptMatch[1]) {
+      js = scriptMatch[1].trim();
+    }
+    
+    return { html, css, js };
   };
 
   // Download the generated project
@@ -406,85 +431,147 @@ const ProjectCustomizationForm: React.FC<ProjectCustomizationFormProps> = ({ onG
   );
 
   // Render form step 4: Preview and download
-  const renderStepFour = () => (
-    <div className="space-y-6">
-      {generatedProject ? (
-        <>
-          <div className="text-center">
-            <h3 className="text-xl font-bold">{generatedProject.name}</h3>
-            <p className="text-gray-600 mt-1">{generatedProject.description}</p>
-          </div>
-          
-          <div className="border rounded-lg overflow-hidden">
-            {generatedProject.previewImageUrl && (
-              <img
-                src={generatedProject.previewImageUrl}
-                alt={generatedProject.name}
-                className="w-full h-40 object-cover"
-              />
-            )}
+  const renderStepFour = () => {
+    const { html, css, js } = parseCodeSnippets();
+    
+    return (
+      <div className="space-y-6">
+        {generatedProject ? (
+          <>
+            <div className="text-center">
+              <h3 className="text-xl font-bold">{generatedProject.name}</h3>
+              <p className="text-gray-600 mt-1">{generatedProject.description}</p>
+            </div>
             
-            <div className="p-4">
-              <h4 className="font-semibold mb-2">Tech Stack</h4>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {generatedProject.techStack.map((tech) => (
-                  <span
-                    key={tech}
-                    className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
+            <div className="border rounded-lg overflow-hidden">
+              {generatedProject.previewImageUrl && (
+                <img
+                  src={generatedProject.previewImageUrl}
+                  alt={generatedProject.name}
+                  className="w-full h-40 object-cover"
+                />
+              )}
               
-              <h4 className="font-semibold mb-2">Project Structure</h4>
-              <div className="bg-gray-50 p-3 rounded-md mb-4">
-                <ul className="text-sm font-mono space-y-1">
-                  {generatedProject.structure.frontend.map((file, index) => (
-                    <li key={index}>{file}</li>
+              <div className="p-4">
+                <h4 className="font-semibold mb-2">Tech Stack</h4>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {generatedProject.techStack.map((tech) => (
+                    <span
+                      key={tech}
+                      className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs"
+                    >
+                      {tech}
+                    </span>
                   ))}
-                </ul>
+                </div>
+                
+                <h4 className="font-semibold mb-2">Project Structure</h4>
+                <div className="bg-gray-50 p-3 rounded-md mb-4">
+                  <ul className="text-sm font-mono space-y-1">
+                    {generatedProject.structure.frontend.map((file, index) => (
+                      <li key={index}>{file}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <Button
+                  onClick={handleDownloadProject}
+                  disabled={isDownloading}
+                  className="w-full mt-2 bg-brand-purple hover:bg-brand-purple/90"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isDownloading ? "Downloading..." : "Download Project"}
+                </Button>
               </div>
+            </div>
+            
+            <div className="pt-4">
+              <h4 className="font-semibold mb-2">Generated Code</h4>
               
-              <Button
-                onClick={handleDownloadProject}
-                disabled={isDownloading}
-                className="w-full mt-2 bg-brand-purple hover:bg-brand-purple/90"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {isDownloading ? "Downloading..." : "Download Project"}
+              <Tabs defaultValue="html" onValueChange={setActiveCodeTab}>
+                <TabsList className="mb-2">
+                  <TabsTrigger value="html" className="flex-1">HTML</TabsTrigger>
+                  <TabsTrigger value="css" className="flex-1">CSS</TabsTrigger>
+                  <TabsTrigger value="js" className="flex-1">JavaScript</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="html">
+                  <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
+                    <pre className="text-sm">
+                      <code>{html || "No HTML code generated"}</code>
+                    </pre>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="css">
+                  <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
+                    <pre className="text-sm">
+                      <code>{css || "No CSS code generated"}</code>
+                    </pre>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="js">
+                  <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
+                    <pre className="text-sm">
+                      <code>{js || "No JavaScript code generated"}</code>
+                    </pre>
+                  </div>
+                </TabsContent>
+              </Tabs>
+              
+              <div className="flex justify-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const codeToDisplay = activeCodeTab === "html" ? html : 
+                                          activeCodeTab === "css" ? css : js;
+                    
+                    // Create a Blob with the code
+                    const blob = new Blob([codeToDisplay], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Create a temporary <a> element and trigger download
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${activeCodeTab === "html" ? "index.html" : 
+                                     activeCodeTab === "css" ? "styles.css" : "script.js"}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // Clean up the Blob URL
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center"
+                >
+                  <Code className="h-4 w-4 mr-2" />
+                  Download {activeCodeTab.toUpperCase()} Code
+                </Button>
+              </div>
+            </div>
+            
+            <div className="pt-4 flex justify-between">
+              <Button onClick={() => setFormStep(1)} variant="outline" className="w-full">
+                Create New Project
               </Button>
             </div>
-          </div>
-          
-          <div className="pt-4">
-            <h4 className="font-semibold mb-2">Generated Code</h4>
-            <div className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-auto max-h-80">
-              <pre className="text-sm">
-                <code>{generatedProject.codeSnippets.frontend}</code>
-              </pre>
-            </div>
-          </div>
-          
-          <div className="pt-4 flex justify-between">
-            <Button onClick={() => setFormStep(1)} variant="outline" className="w-full">
-              Create New Project
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <p>No project generated yet.</p>
+            <Button
+              onClick={() => setFormStep(1)}
+              className="mt-4 bg-brand-purple hover:bg-brand-purple/90"
+            >
+              Start Over
             </Button>
           </div>
-        </>
-      ) : (
-        <div className="text-center py-8">
-          <p>No project generated yet.</p>
-          <Button
-            onClick={() => setFormStep(1)}
-            className="mt-4 bg-brand-purple hover:bg-brand-purple/90"
-          >
-            Start Over
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   // Render the appropriate form step
   return (

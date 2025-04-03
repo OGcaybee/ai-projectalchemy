@@ -44,20 +44,16 @@ const PopularTemplates = () => {
     
     setDownloadingId(template.id);
     try {
-      const downloadUrl = await downloadTemplate(template);
-      
-      // Create an anchor element and trigger download
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = `${template.name.replace(/\s+/g, '-').toLowerCase()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      toast.success(`${template.name} template download started`);
+      // Redirect to GitHub repo for direct download instead of generating a zip
+      if (template.githubUrl) {
+        window.open(template.githubUrl, '_blank', 'noopener,noreferrer');
+        toast.success(`Redirected to ${template.name} GitHub repository`);
+      } else {
+        toast.error("GitHub repository not available for this template");
+      }
     } catch (error) {
-      console.error("Error downloading template:", error);
-      toast.error("Failed to download template");
+      console.error("Error accessing template repository:", error);
+      toast.error("Failed to access repository");
     } finally {
       setDownloadingId(null);
     }
@@ -152,7 +148,7 @@ const PopularTemplates = () => {
                           disabled={downloadingId === template.id}
                         >
                           <Download className="h-4 w-4 mr-1" />
-                          {downloadingId === template.id ? "Downloading..." : "Download"}
+                          {downloadingId === template.id ? "Redirecting..." : "Download"}
                         </Button>
                         {template.githubUrl && (
                           <Button 

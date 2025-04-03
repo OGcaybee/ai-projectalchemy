@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import JSZip from "jszip";
 
@@ -7,6 +6,9 @@ export type ProjectRequirement = {
   description: string;
   features: string[];
   techStack: string[];
+  projectName?: string;
+  themeColor?: string;
+  imageUrls?: string[];
 };
 
 export type GeneratedProject = {
@@ -22,6 +24,7 @@ export type GeneratedProject = {
     frontend: string[];
     backend: string[];
   };
+  previewImageUrl?: string;
   downloadUrl?: string;
 };
 
@@ -29,110 +32,43 @@ export type GeneratedProject = {
 const HUGGING_FACE_API_KEY = "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";
 const HUGGING_FACE_API_ENDPOINT = "https://api-inference.huggingface.co/models/codellama/CodeLlama-34b-Instruct-hf";
 
-const createProjectZip = async (project: GeneratedProject): Promise<string> => {
+const createProjectZip = async (project: GeneratedProject & { cssCode?: string }): Promise<string> => {
   try {
     const zip = new JSZip();
     
     // Create README file
     zip.file("README.md", `# ${project.name}\n\n${project.description}\n\nGenerated with Thynk AI`);
     
-    // Create a src folder structure
-    const srcFolder = zip.folder("src");
-    const assetsFolder = zip.folder("assets");
+    // Add the HTML, CSS, and JS files
+    let htmlContent = project.codeSnippets.frontend;
+    const cssContent = project.cssCode || "";
+    const jsContent = project.codeSnippets.backend || "";
     
-    // If we have frontend code, create the appropriate files
-    if (project.codeSnippets.frontend) {
-      // Try to determine if it's HTML or JS based on content
-      if (project.codeSnippets.frontend.includes("<!DOCTYPE html>") || 
-          project.codeSnippets.frontend.includes("<html")) {
-        zip.file("index.html", project.codeSnippets.frontend);
-      } else if (project.techStack.includes("React")) {
-        srcFolder?.file("App.jsx", project.codeSnippets.frontend);
-        
-        // Create a basic index.html for React apps
-        zip.file("index.html", `<!DOCTYPE html>
+    // If the HTML doesn't include DOCTYPE or html tags, wrap it
+    if (!htmlContent.includes("<!DOCTYPE html>") && !htmlContent.includes("<html")) {
+      htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${project.name}</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="root"></div>
-  <script src="src/index.js" type="module"></script>
+${htmlContent}
+<script src="script.js"></script>
 </body>
-</html>`);
-        
-        // Create a simple index.js
-        srcFolder?.file("index.js", `import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
-`);
-      } else {
-        // Assume it's JavaScript
-        srcFolder?.file("main.js", project.codeSnippets.frontend);
-      }
+</html>`;
     }
     
-    // If we have backend code, create appropriate files
-    if (project.codeSnippets.backend) {
-      // For Node.js
-      if (project.techStack.includes("Node.js") || 
-          project.techStack.includes("Express")) {
-        zip.file("server.js", project.codeSnippets.backend);
-      } else {
-        // For other backends
-        zip.file("backend/index.js", project.codeSnippets.backend);
-      }
-    }
+    zip.file("index.html", htmlContent);
     
-    // Create package.json with appropriate dependencies
-    const dependencies: Record<string, string> = {};
-    project.techStack.forEach(tech => {
-      switch (tech) {
-        case "React":
-          dependencies["react"] = "^18.2.0";
-          dependencies["react-dom"] = "^18.2.0";
-          break;
-        case "Express":
-        case "Node.js":
-          dependencies["express"] = "^4.18.2";
-          break;
-        case "MongoDB":
-          dependencies["mongodb"] = "^5.0.0";
-          dependencies["mongoose"] = "^7.0.0";
-          break;
-        case "Tailwind CSS":
-          dependencies["tailwindcss"] = "^3.3.0";
-          break;
-      }
-    });
-    
-    zip.file("package.json", JSON.stringify({
-      name: project.name.toLowerCase().replace(/\s+/g, '-'),
-      version: "1.0.0",
-      description: project.description,
-      main: project.techStack.includes("Express") ? "server.js" : "index.js",
-      scripts: {
-        start: project.techStack.includes("Express") ? "node server.js" : "serve"
-      },
-      dependencies,
-      devDependencies: {
-        "serve": "^14.0.0"
-      }
-    }, null, 2));
-    
-    // Create basic CSS if needed
-    if (!project.codeSnippets.frontend.includes("<style>") && 
-        !project.codeSnippets.frontend.includes("import './styles.css'")) {
-      zip.file("src/styles.css", `/* Generated styles for ${project.name} */
+    // Add CSS file
+    if (cssContent) {
+      zip.file("styles.css", cssContent);
+    } else {
+      // Default CSS if none was generated
+      zip.file("styles.css", `/* Styles for ${project.name} */
 body {
   font-family: 'Arial', sans-serif;
   line-height: 1.6;
@@ -145,23 +81,73 @@ body {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 15px;
 }
 
 header {
   background-color: #f8f9fa;
-  padding: 20px 0;
+  padding: 1rem 0;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-footer {
-  background-color: #f8f9fa;
-  padding: 20px 0;
-  text-align: center;
-  margin-top: 40px;
+h1, h2, h3 {
+  margin-top: 0;
+}
+
+.btn {
+  display: inline-block;
+  background: #3f51b5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: background 0.3s ease;
+}
+
+.btn:hover {
+  background: #303f9f;
 }
 `);
     }
+    
+    // Add JS file
+    if (jsContent) {
+      zip.file("script.js", jsContent);
+    } else {
+      // Default JS if none was generated
+      zip.file("script.js", `// JavaScript for ${project.name}
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('${project.name} initialized');
+  
+  // Add basic functionality here
+  const buttons = document.querySelectorAll('button');
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      console.log('Button clicked:', button.textContent);
+    });
+  });
+});
+`);
+    }
+    
+    // Create a simple package.json
+    zip.file("package.json", JSON.stringify({
+      name: project.name.toLowerCase().replace(/\s+/g, '-'),
+      version: "1.0.0",
+      description: project.description,
+      main: "index.html",
+      scripts: {
+        start: "serve",
+        dev: "serve"
+      },
+      dependencies: {},
+      devDependencies: {
+        "serve": "^14.0.0"
+      }
+    }, null, 2));
     
     // Generate the ZIP file
     const content = await zip.generateAsync({ type: "blob" });
@@ -179,62 +165,32 @@ export const generateProject = async (requirements: ProjectRequirement): Promise
     // Create a detailed and specific prompt for the AI
     const prompt = `
     <INST>
-    You are a professional web developer tasked with creating a complete ${requirements.projectType} application. Your task is to generate real, production-ready code based on the following requirements.
+    You are a professional web developer tasked with creating a ${requirements.projectType} application named "${requirements.projectName || "My App"}". Your task is to generate real, production-ready code based on the following requirements.
 
     Project Description: ${requirements.description}
     
-    Required Features:
-    ${requirements.features.map(feature => `- ${feature}`).join('\n')}
+    ${requirements.features.length > 0 ? `Required Features:
+    ${requirements.features.map(feature => `- ${feature}`).join('\n')}` : ''}
     
     Technology Stack:
     ${requirements.techStack.map(tech => `- ${tech}`).join('\n')}
     
-    I need you to generate:
-    1. ACTUAL FUNCTIONAL FRONTEND CODE (not pseudocode) implementing the main user interface of this application. 
-       This code should use ${requirements.techStack.filter(t => t.includes('React') || t.includes('Vue') || t.includes('Angular') || t.includes('HTML') || t.includes('CSS')).join(', ')}.
+    Theme Color: ${requirements.themeColor || 'default'}
     
-    2. ACTUAL FUNCTIONAL BACKEND CODE (not pseudocode) implementing the server, API endpoints, and database interactions.
-       This code should use ${requirements.techStack.filter(t => t.includes('Node') || t.includes('Express') || t.includes('MongoDB') || t.includes('SQL') || t.includes('Python') || t.includes('Django') || t.includes('Flask')).join(', ')}.
+    ${requirements.imageUrls && requirements.imageUrls.length > 0 ? `Reference Images:
+    ${requirements.imageUrls.map(url => `- ${url}`).join('\n')}` : ''}
     
-    3. A file structure showing the organization of both frontend and backend components.
+    I need you to generate a single-page web application with HTML, CSS and JavaScript (NOT a React application). Please focus on generating a simple but working implementation that demonstrates the core functionality.
     
     IMPORTANT GUIDELINES:
-    - Do NOT generate pseudocode or placeholder code. Create COMPLETE, WORKING code snippets.
-    - Include proper imports, error handling, and comments.
-    - For frontend: Include styling, state management, and component structure.
-    - For backend: Include routes, controllers, database models, and connection setup.
-    - Limit your code to the most important files that demonstrate the core functionality.
-    - For each code section, specify the file path where it should be placed.
+    - Do NOT use React or any complex framework, just use vanilla JavaScript or at most a small library
+    - Create ACTUAL working code, not pseudocode
+    - Include proper comments
+    - Make sure to use the specified theme color
+    - Focus on visual design and user experience
+    - Create something simple but complete rather than complex and partial
     
-    Format your response as follows:
-    
-    ## Project Overview
-    [Brief description of the generated project]
-    
-    ## Frontend Code
-    \`\`\`jsx
-    // src/components/MainComponent.jsx
-    [Your actual frontend code here]
-    \`\`\`
-    
-    ## Backend Code
-    \`\`\`js
-    // server/index.js
-    [Your actual backend code here]
-    \`\`\`
-    
-    ## Project Structure
-    \`\`\`
-    frontend/
-      ├── src/
-      │   ├── components/
-      │   ├── pages/
-      │   ├── ...
-    backend/
-      ├── controllers/
-      ├── models/
-      ├── ...
-    \`\`\`
+    Return your response as a vanilla JavaScript application that can run directly in a browser.
     </INST>
     `;
 
@@ -276,108 +232,94 @@ export const generateProject = async (requirements: ProjectRequirement): Promise
     }
 
     const data = await response.json();
-    const aiResponse = typeof data === 'string' ? data : (data.generated_text || '');
-
-    console.log("Received AI response of length:", aiResponse.length);
-
-    // Extract code snippets from the AI response with improved parsing
-    let frontendCode = "// Generated Frontend Code\n";
-    let backendCode = "// Generated Backend Code\n";
-    let projectName = requirements.projectType + " Application";
-    let projectDescription = requirements.description;
+    console.log("Received response from API:", typeof data);
     
-    try {
-      // Try to extract overview
-      const overviewMatch = aiResponse.match(/## Project Overview\s*([^#]+)/);
-      if (overviewMatch && overviewMatch[1]) {
-        projectDescription = overviewMatch[1].trim();
+    let generatedCode = "";
+    if (typeof data === 'string') {
+      generatedCode = data;
+    } else if (data.generated_text) {
+      generatedCode = data.generated_text;
+    } else {
+      console.error("Unexpected API response format:", data);
+      generatedCode = "// Error: Failed to parse AI response";
+    }
+    
+    console.log("Generated code length:", generatedCode.length);
+
+    // Extract HTML, CSS, and JavaScript from the response
+    let htmlCode = "";
+    let cssCode = "";
+    let jsCode = "";
+    
+    // Try to parse the response for HTML, CSS, and JS sections
+    if (generatedCode.includes("<!DOCTYPE html>") || generatedCode.includes("<html")) {
+      htmlCode = generatedCode;
+    } else {
+      // Look for code blocks
+      const htmlMatch = generatedCode.match(/```html([\s\S]*?)```/);
+      const cssMatch = generatedCode.match(/```css([\s\S]*?)```/);
+      const jsMatch = generatedCode.match(/```(?:javascript|js)([\s\S]*?)```/);
+      
+      if (htmlMatch && htmlMatch[1]) {
+        htmlCode = htmlMatch[1].trim();
       }
       
-      // Try to extract frontend code
-      const frontendMatch = aiResponse.match(/## Frontend Code\s*```(?:jsx?|tsx?|react|html)([\s\S]*?)```/);
-      if (frontendMatch && frontendMatch[1]) {
-        frontendCode = frontendMatch[1].trim();
-      } else {
-        // Alternative pattern
-        const altFrontendMatch = aiResponse.match(/```(?:jsx?|tsx?|react|html)([\s\S]*?)```/);
-        if (altFrontendMatch && altFrontendMatch[1]) {
-          frontendCode = altFrontendMatch[1].trim();
-        }
+      if (cssMatch && cssMatch[1]) {
+        cssCode = cssMatch[1].trim();
       }
       
-      // Try to extract backend code
-      const backendMatch = aiResponse.match(/## Backend Code\s*```(?:js|ts|node|express|backend)([\s\S]*?)```/);
-      if (backendMatch && backendMatch[1]) {
-        backendCode = backendMatch[1].trim();
-      } else {
-        // Look for second code block if specific tagging failed
-        const codeBlocks = aiResponse.match(/```[\s\S]*?```/g);
-        if (codeBlocks && codeBlocks.length >= 2) {
-          const secondBlock = codeBlocks[1].replace(/```[\s\S]*?/, '').replace(/```/, '').trim();
-          if (!frontendCode.includes(secondBlock)) {
-            backendCode = secondBlock;
-          }
-        }
+      if (jsMatch && jsMatch[1]) {
+        jsCode = jsMatch[1].trim();
       }
       
-      // Extract project structure
-      const structureMatch = aiResponse.match(/## Project Structure\s*```([\s\S]*?)```/);
-      let frontendStructure: string[] = [];
-      let backendStructure: string[] = [];
-      
-      if (structureMatch && structureMatch[1]) {
-        const structureText = structureMatch[1].trim();
-        const frontendPart = structureText.match(/frontend\/[\s\S]*?(?=backend\/|$)/);
-        const backendPart = structureText.match(/backend\/[\s\S]*/);
-        
-        if (frontendPart) {
-          frontendStructure = frontendPart[0]
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0);
-        }
-        
-        if (backendPart) {
-          backendStructure = backendPart[0]
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0);
-        }
+      // If we couldn't extract specific sections, just use the whole response
+      if (!htmlCode && !cssCode && !jsCode) {
+        htmlCode = generatedCode;
       }
-      
-      // If structure extraction failed, generate based on tech stack
-      if (frontendStructure.length === 0) {
-        frontendStructure = generateFrontendStructure(requirements.techStack);
-      }
-      
-      if (backendStructure.length === 0) {
-        backendStructure = generateBackendStructure(requirements.techStack);
-      }
-    } catch (error) {
-      console.error("Error parsing AI response:", error);
-      // Fallback to basic structure
-      frontendCode = aiResponse;
-      backendCode = "// Backend code generation failed, please try again";
     }
 
+    // Create a project structure based on the generated code
+    const frontendStructure = [
+      "index.html",
+      "styles.css",
+      "script.js",
+      "assets/"
+    ];
+    
     const generatedProject: GeneratedProject = {
       id: `proj-${Date.now()}`,
-      name: requirements.projectType || "Generated Project",
-      description: projectDescription,
+      name: requirements.projectName || requirements.projectType || "Generated Project",
+      description: requirements.description || `A ${requirements.projectType} application`,
       codeSnippets: {
-        frontend: frontendCode,
-        backend: backendCode
+        frontend: htmlCode,
+        backend: jsCode
       },
       techStack: [...requirements.techStack],
       structure: {
-        frontend: generateFrontendStructure(requirements.techStack),
-        backend: generateBackendStructure(requirements.techStack)
-      }
+        frontend: frontendStructure,
+        backend: []
+      },
+      previewImageUrl: requirements.imageUrls && requirements.imageUrls.length > 0 ? requirements.imageUrls[0] : undefined
     };
     
-    const downloadUrl = await createProjectZip(generatedProject);
+    // Create a downloadable zip file
+    try {
+      const downloadUrl = await createProjectZip({
+        ...generatedProject,
+        codeSnippets: {
+          frontend: htmlCode,
+          backend: jsCode
+        },
+        cssCode: cssCode
+      });
+      
+      generatedProject.downloadUrl = downloadUrl;
+    } catch (error) {
+      console.error("Error creating downloadable ZIP:", error);
+    }
+    
     toast.success("Project generated successfully!");
-    return { ...generatedProject, downloadUrl };
+    return generatedProject;
     
   } catch (error) {
     console.error("Error generating project:", error);
@@ -390,7 +332,7 @@ export const generateProject = async (requirements: ProjectRequirement): Promise
 const generateFallbackProject = (requirements: ProjectRequirement): GeneratedProject => {
   console.log("Generating fallback project");
   
-  const projectName = requirements.projectType || "Generated Project";
+  const projectName = requirements.projectName || requirements.projectType || "Generated Project";
   let frontendCode = "";
   let backendCode = "";
   
@@ -477,52 +419,6 @@ const generateFallbackProject = (requirements: ProjectRequirement): GeneratedPro
   </script>
 </body>
 </html>`;
-  }
-  
-  // Basic React template
-  if (requirements.techStack.includes("React")) {
-    frontendCode = `import React, { useState } from 'react';
-import './App.css';
-
-function App() {
-  const [activeFeature, setActiveFeature] = useState(null);
-  
-  const features = [
-    ${requirements.features.map(feature => `{
-      id: ${requirements.features.indexOf(feature) + 1},
-      name: "${feature}",
-      description: "Implementation for ${feature}"
-    }`).join(',\n    ')}
-  ];
-  
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>${projectName}</h1>
-        <p>${requirements.description || "A project generated with Thynk AI"}</p>
-      </header>
-      
-      <div className="features-container">
-        {features.map(feature => (
-          <div 
-            key={feature.id}
-            className={\`feature-card \${activeFeature === feature.id ? 'active' : ''}\`}
-            onClick={() => setActiveFeature(feature.id)}
-          >
-            <h2>{feature.name}</h2>
-            <p>{feature.description}</p>
-          </div>
-        ))}
-      </div>
-      
-      <footer>
-        <p>&copy; {new Date().getFullYear()} ${projectName} - Generated with Thynk AI</p>
-      </footer>
-    </div>
-  );
-}
-
-export default App;`;
   }
   
   // Basic Express backend

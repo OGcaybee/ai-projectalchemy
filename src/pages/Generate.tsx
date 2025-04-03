@@ -280,7 +280,6 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
           <TabsList className="w-full mb-8">
             <TabsTrigger value="template" className="flex-1">Template Customizer</TabsTrigger>
             <TabsTrigger value="ai" className="flex-1">AI Generator</TabsTrigger>
-            <TabsTrigger value="custom-builder" className="flex-1">Customized Template Builder</TabsTrigger>
           </TabsList>
 
           <TabsContent value="template">
@@ -537,14 +536,37 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
           </TabsContent>
 
           <TabsContent value="ai">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Code Generator</CardTitle>
-                <CardDescription>
+            <Card className="border-2 border-orange-400">
+              <CardHeader className="bg-orange-50">
+                <CardTitle className="text-orange-700">AI Code Generator</CardTitle>
+                <CardDescription className="text-orange-600">
                   Generate a complete project with AI based on your description
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 relative">
+                <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-10 p-6">
+                  <div className="bg-orange-100 border-2 border-orange-300 rounded-xl p-6 text-center shadow-lg max-w-md">
+                    <div className="flex justify-center mb-4">
+                      <div className="bg-orange-500 text-white p-3 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                      </div>
+                    </div>
+                    <h3 className="text-xl font-bold text-orange-800 mb-2">Pro Feature</h3>
+                    <p className="text-orange-700 mb-4">
+                      The AI Code Generator is available exclusively to Pro and Team plan subscribers.
+                    </p>
+                    <Button 
+                      className="bg-orange-500 hover:bg-orange-600 text-white w-full"
+                      onClick={() => navigate('/pricing')}
+                    >
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <Label htmlFor="ai-project-name">Project Name</Label>
                   <Input
@@ -591,127 +613,13 @@ app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`
               </CardContent>
               <CardFooter className="flex justify-end">
                 <Button
-                  onClick={() => toast.info("AI Generation coming soon in full functionality!")}
-                  className="bg-brand-purple hover:bg-brand-purple/90"
+                  className="bg-orange-500 hover:bg-orange-600"
+                  onClick={() => navigate('/pricing')}
                 >
-                  Generate Project
+                  Upgrade to Generate
                 </Button>
               </CardFooter>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="custom-builder">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>AI-Powered Project Generator</CardTitle>
-                  <CardDescription>
-                    Define your project requirements and let our AI generate a working application for you
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ProjectCustomizationForm onGenerated={handleProjectGenerated} />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Customized Template Builder</CardTitle>
-                  <CardDescription>
-                    Quickly customize and download pre-built templates
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {Object.entries({
-                      dashboard: "Dashboard",
-                      ecommerce: "E-commerce Store",
-                      blog: "Content Blog",
-                      portfolio: "Portfolio Site",
-                      landingPage: "Landing Page",
-                      adminDashboard: "Admin Dashboard"
-                    }).map(([key, name]) => (
-                      <div 
-                        key={key}
-                        onClick={() => {
-                          setSelectedTemplateId(key);
-                          toast.success(`${name} template selected`);
-                        }}
-                        className="relative cursor-pointer rounded-lg border-2 transition-all hover:shadow-md overflow-hidden group"
-                      >
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors z-10"></div>
-                        <img 
-                          src={`../../public/template-icons/${key}-template.png`} 
-                          alt={name}
-                          className="w-full aspect-video object-cover"
-                        />
-                        <div className="p-3 border-t">
-                          <h3 className="font-medium">{name}</h3>
-                          <p className="text-xs text-gray-500">Click to select</p>
-                        </div>
-                        {selectedTemplateId === key && (
-                          <div className="absolute top-2 right-2 bg-brand-purple text-white text-xs px-2 py-1 rounded-full z-20">
-                            Selected
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedTemplateId && (
-                    <>
-                      <div className="border-t border-gray-200 pt-6 mt-6">
-                        <h3 className="text-lg font-medium mb-4">Customize Your Template</h3>
-                        
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="custom-project-name">Project Name</Label>
-                            <Input
-                              id="custom-project-name"
-                              value={projectName}
-                              onChange={(e) => setProjectName(e.target.value)}
-                              placeholder="Enter a name for your project"
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label>Theme Color</Label>
-                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                              {themeOptions.map((theme) => (
-                                <div 
-                                  key={theme.value}
-                                  className={`p-2 border rounded-md cursor-pointer transition-all ${
-                                    projectTheme === theme.value ? 'border-2 border-brand-purple' : 'border-gray-200 hover:border-gray-300'
-                                  }`}
-                                  onClick={() => setProjectTheme(theme.value)}
-                                >
-                                  <div 
-                                    className="w-full h-4 rounded-full mb-2"
-                                    style={{ backgroundColor: theme.color }}
-                                  ></div>
-                                  <p className="text-xs text-center truncate">{theme.label}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end pt-4">
-                        <Button
-                          onClick={handleDownloadProject}
-                          disabled={isDownloading}
-                          className="bg-brand-purple hover:bg-brand-purple/90"
-                        >
-                          <Download className="h-4 w-4 mr-2" /> 
-                          {isDownloading ? "Downloading..." : "Generate & Download"}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
       </div>
