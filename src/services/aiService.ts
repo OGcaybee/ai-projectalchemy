@@ -28,298 +28,22 @@ export type GeneratedProject = {
   downloadUrl?: string;
 };
 
-// Hugging Face API
-const HUGGING_FACE_API_KEY = "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";
-const HUGGING_FACE_API_ENDPOINT = "https://api-inference.huggingface.co/models/codellama/CodeLlama-34b-Instruct-hf";
+// We're switching from Hugging Face to a local template-based generation approach
+// which doesn't require any API keys and will be free and reliable
+const TEMPLATE_BASED_GENERATION = true;
 
-const createProjectZip = async (project: GeneratedProject & { cssCode?: string }): Promise<string> => {
-  try {
-    const zip = new JSZip();
-    
-    // Create README file
-    zip.file("README.md", `# ${project.name}\n\n${project.description}\n\nGenerated with Thynk AI`);
-    
-    // Add the HTML, CSS, and JS files
-    let htmlContent = project.codeSnippets.frontend;
-    const cssContent = project.cssCode || "";
-    const jsContent = project.codeSnippets.backend || "";
-    
-    // If the HTML doesn't include DOCTYPE or html tags, wrap it
-    if (!htmlContent.includes("<!DOCTYPE html>") && !htmlContent.includes("<html")) {
-      htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${project.name}</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-${htmlContent}
-<script src="script.js"></script>
-</body>
-</html>`;
-    }
-    
-    zip.file("index.html", htmlContent);
-    
-    // Add CSS file
-    if (cssContent) {
-      zip.file("styles.css", cssContent);
-    } else {
-      // Default CSS if none was generated
-      zip.file("styles.css", `/* Styles for ${project.name} */
-body {
-  font-family: 'Arial', sans-serif;
-  line-height: 1.6;
-  margin: 0;
-  padding: 0;
-  color: #333;
-}
-
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 15px;
-}
-
-header {
-  background-color: #f8f9fa;
-  padding: 1rem 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-h1, h2, h3 {
-  margin-top: 0;
-}
-
-.btn {
-  display: inline-block;
-  background: #3f51b5;
-  color: white;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 1rem;
-  transition: background 0.3s ease;
-}
-
-.btn:hover {
-  background: #303f9f;
-}
-`);
-    }
-    
-    // Add JS file
-    if (jsContent) {
-      zip.file("script.js", jsContent);
-    } else {
-      // Default JS if none was generated
-      zip.file("script.js", `// JavaScript for ${project.name}
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('${project.name} initialized');
-  
-  // Add basic functionality here
-  const buttons = document.querySelectorAll('button');
-  buttons.forEach(button => {
-    button.addEventListener('click', () => {
-      console.log('Button clicked:', button.textContent);
-    });
-  });
-});
-`);
-    }
-    
-    // Create a simple package.json
-    zip.file("package.json", JSON.stringify({
-      name: project.name.toLowerCase().replace(/\s+/g, '-'),
-      version: "1.0.0",
-      description: project.description,
-      main: "index.html",
-      scripts: {
-        start: "serve",
-        dev: "serve"
-      },
-      dependencies: {},
-      devDependencies: {
-        "serve": "^14.0.0"
-      }
-    }, null, 2));
-    
-    // Generate the ZIP file
-    const content = await zip.generateAsync({ type: "blob" });
-    return URL.createObjectURL(content);
-  } catch (error) {
-    console.error("Error creating project ZIP:", error);
-    throw new Error("Failed to create downloadable project file");
-  }
-};
-
+// Generate project based on requirements
 export const generateProject = async (requirements: ProjectRequirement): Promise<GeneratedProject> => {
   try {
-    toast.info("Starting project generation with CodeLlama...");
+    toast.info("Starting project generation...");
     
-    // Create a detailed and specific prompt for the AI
-    const prompt = `
-    <INST>
-    You are a professional web developer tasked with creating a ${requirements.projectType} application named "${requirements.projectName || "My App"}". Your task is to generate real, production-ready code based on the following requirements.
-
-    Project Description: ${requirements.description}
-    
-    ${requirements.features.length > 0 ? `Required Features:
-    ${requirements.features.map(feature => `- ${feature}`).join('\n')}` : ''}
-    
-    Technology Stack:
-    ${requirements.techStack.map(tech => `- ${tech}`).join('\n')}
-    
-    Theme Color: ${requirements.themeColor || 'default'}
-    
-    ${requirements.imageUrls && requirements.imageUrls.length > 0 ? `Reference Images:
-    ${requirements.imageUrls.map(url => `- ${url}`).join('\n')}` : ''}
-    
-    I need you to generate a single-page web application with HTML, CSS and JavaScript (NOT a React application). Please focus on generating a simple but working implementation that demonstrates the core functionality.
-    
-    IMPORTANT GUIDELINES:
-    - Do NOT use React or any complex framework, just use vanilla JavaScript or at most a small library
-    - Create ACTUAL working code, not pseudocode
-    - Include proper comments
-    - Make sure to use the specified theme color
-    - Focus on visual design and user experience
-    - Create something simple but complete rather than complex and partial
-    
-    Return your response as a vanilla JavaScript application that can run directly in a browser.
-    </INST>
-    `;
-
-    console.log("Sending request to CodeLlama API with prompt:", prompt);
-    console.log("API Endpoint:", HUGGING_FACE_API_ENDPOINT);
-    console.log("API Key (first 5 chars):", HUGGING_FACE_API_KEY.substring(0, 5) + "...");
-
-    // Call HuggingFace API
-    const response = await fetch(HUGGING_FACE_API_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 4000,
-          temperature: 0.2,
-          top_p: 0.95,
-          do_sample: true
-        }
-      })
-    });
-
-    console.log("Response status:", response.status);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("API Error Response:", errorData);
-      
-      // If model is busy, generate a fallback response
-      if (errorData.error && errorData.error.includes("Model too busy")) {
-        console.log("Model too busy, generating fallback response");
-        return generateFallbackProject(requirements);
-      }
-      
-      throw new Error(errorData.error || "Failed to generate project with AI");
-    }
-
-    const data = await response.json();
-    console.log("Received response from API:", typeof data);
-    
-    let generatedCode = "";
-    if (typeof data === 'string') {
-      generatedCode = data;
-    } else if (data.generated_text) {
-      generatedCode = data.generated_text;
-    } else {
-      console.error("Unexpected API response format:", data);
-      generatedCode = "// Error: Failed to parse AI response";
+    // If we're using template-based generation (no API calls)
+    if (TEMPLATE_BASED_GENERATION) {
+      return generateTemplateBasedProject(requirements);
     }
     
-    console.log("Generated code length:", generatedCode.length);
-
-    // Extract HTML, CSS, and JavaScript from the response
-    let htmlCode = "";
-    let cssCode = "";
-    let jsCode = "";
-    
-    // Try to parse the response for HTML, CSS, and JS sections
-    if (generatedCode.includes("<!DOCTYPE html>") || generatedCode.includes("<html")) {
-      htmlCode = generatedCode;
-    } else {
-      // Look for code blocks
-      const htmlMatch = generatedCode.match(/```html([\s\S]*?)```/);
-      const cssMatch = generatedCode.match(/```css([\s\S]*?)```/);
-      const jsMatch = generatedCode.match(/```(?:javascript|js)([\s\S]*?)```/);
-      
-      if (htmlMatch && htmlMatch[1]) {
-        htmlCode = htmlMatch[1].trim();
-      }
-      
-      if (cssMatch && cssMatch[1]) {
-        cssCode = cssMatch[1].trim();
-      }
-      
-      if (jsMatch && jsMatch[1]) {
-        jsCode = jsMatch[1].trim();
-      }
-      
-      // If we couldn't extract specific sections, just use the whole response
-      if (!htmlCode && !cssCode && !jsCode) {
-        htmlCode = generatedCode;
-      }
-    }
-
-    // Create a project structure based on the generated code
-    const frontendStructure = [
-      "index.html",
-      "styles.css",
-      "script.js",
-      "assets/"
-    ];
-    
-    const generatedProject: GeneratedProject = {
-      id: `proj-${Date.now()}`,
-      name: requirements.projectName || requirements.projectType || "Generated Project",
-      description: requirements.description || `A ${requirements.projectType} application`,
-      codeSnippets: {
-        frontend: htmlCode,
-        backend: jsCode
-      },
-      techStack: [...requirements.techStack],
-      structure: {
-        frontend: frontendStructure,
-        backend: []
-      },
-      previewImageUrl: requirements.imageUrls && requirements.imageUrls.length > 0 ? requirements.imageUrls[0] : undefined
-    };
-    
-    // Create a downloadable zip file
-    try {
-      const downloadUrl = await createProjectZip({
-        ...generatedProject,
-        codeSnippets: {
-          frontend: htmlCode,
-          backend: jsCode
-        },
-        cssCode: cssCode
-      });
-      
-      generatedProject.downloadUrl = downloadUrl;
-    } catch (error) {
-      console.error("Error creating downloadable ZIP:", error);
-    }
-    
-    toast.success("Project generated successfully!");
-    return generatedProject;
+    // This is a fallback for if we want to reimplement API-based generation later
+    return generateFallbackProject(requirements);
     
   } catch (error) {
     console.error("Error generating project:", error);
@@ -328,259 +52,847 @@ export const generateProject = async (requirements: ProjectRequirement): Promise
   }
 };
 
-// Function to generate a fallback project when the API fails
-const generateFallbackProject = (requirements: ProjectRequirement): GeneratedProject => {
-  console.log("Generating fallback project");
+// Our new approach: generate projects based on predefined templates
+const generateTemplateBasedProject = async (requirements: ProjectRequirement): Promise<GeneratedProject> => {
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
   
   const projectName = requirements.projectName || requirements.projectType || "Generated Project";
-  let frontendCode = "";
-  let backendCode = "";
+  const themeColor = requirements.themeColor || 'default';
   
-  // Basic HTML/CSS/JS template
-  if (requirements.techStack.includes("HTML") || 
-      requirements.techStack.includes("CSS") || 
-      requirements.techStack.includes("JavaScript")) {
-    frontendCode = `<!DOCTYPE html>
+  // Select the right template based on project type
+  let templateHtml = "";
+  let templateCss = "";
+  let templateJs = "";
+  
+  // Generate template based on project type
+  switch (requirements.projectType.toLowerCase()) {
+    case "e-commerce":
+      templateHtml = generateEcommerceTemplate(requirements);
+      templateCss = generateEcommerceCss(themeColor);
+      templateJs = generateEcommerceJs(requirements);
+      break;
+    case "portfolio":
+      templateHtml = generatePortfolioTemplate(requirements);
+      templateCss = generatePortfolioCss(themeColor);
+      templateJs = generatePortfolioJs(requirements);
+      break;
+    case "blog":
+      templateHtml = generateBlogTemplate(requirements);
+      templateCss = generateBlogCss(themeColor);
+      templateJs = generateBlogJs(requirements);
+      break;
+    case "dashboard":
+      templateHtml = generateDashboardTemplate(requirements);
+      templateCss = generateDashboardCss(themeColor);
+      templateJs = generateDashboardJs(requirements);
+      break;
+    default:
+      // Default to a landing page
+      templateHtml = generateLandingPageTemplate(requirements);
+      templateCss = generateLandingPageCss(themeColor);
+      templateJs = generateLandingPageJs(requirements);
+  }
+  
+  // Create a project object
+  const generatedProject: GeneratedProject = {
+    id: `proj-${Date.now()}`,
+    name: projectName,
+    description: requirements.description || `A ${requirements.projectType} application`,
+    codeSnippets: {
+      frontend: templateHtml,
+      backend: templateJs
+    },
+    techStack: [...requirements.techStack],
+    structure: {
+      frontend: [
+        "index.html",
+        "styles.css",
+        "script.js",
+        "assets/"
+      ],
+      backend: []
+    },
+    previewImageUrl: requirements.imageUrls && requirements.imageUrls.length > 0 ? requirements.imageUrls[0] : undefined
+  };
+  
+  // Create a downloadable zip file
+  try {
+    const downloadUrl = await createProjectZip({
+      ...generatedProject,
+      cssCode: templateCss
+    });
+    
+    generatedProject.downloadUrl = downloadUrl;
+  } catch (error) {
+    console.error("Error creating downloadable ZIP:", error);
+  }
+  
+  toast.success("Project generated successfully!");
+  return generatedProject;
+};
+
+// Template generators for different project types
+function generateEcommerceTemplate(requirements: ProjectRequirement): string {
+  const features = requirements.features || [];
+  
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${projectName}</title>
-  <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      line-height: 1.6;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-      color: #333;
-    }
-    header {
-      background-color: #f5f5f5;
-      padding: 1rem;
-      margin-bottom: 2rem;
-      border-radius: 5px;
-    }
-    .main-content {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-    .card {
-      background: white;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-    footer {
-      margin-top: 2rem;
-      text-align: center;
-      padding: 1rem;
-      background-color: #f5f5f5;
-      border-radius: 5px;
-    }
-  </style>
+  <title>${requirements.projectName || "E-commerce Store"}</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>${projectName}</h1>
-    <p>${requirements.description || "A project generated with Thynk AI"}</p>
-  </header>
-  
-  <div class="main-content">
-    ${requirements.features.map(feature => `
-    <div class="card">
-      <h2>${feature}</h2>
-      <p>Implementation for ${feature}</p>
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">
+          <h1>${requirements.projectName || "E-commerce Store"}</h1>
+        </div>
+        <nav class="nav">
+          <ul>
+            <li><a href="#" class="active">Home</a></li>
+            <li><a href="#">Products</a></li>
+            <li><a href="#">Categories</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="header-actions">
+          <button class="btn-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          </button>
+          <button class="btn-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          </button>
+          <button class="btn-icon cart-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"></circle><circle cx="19" cy="21" r="1"></circle><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"></path></svg>
+            <span class="cart-count">0</span>
+          </button>
+        </div>
+      </div>
     </div>
-    `).join('')}
-  </div>
-  
-  <footer>
-    <p>&copy; ${new Date().getFullYear()} ${projectName} - Generated with Thynk AI</p>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h2>Welcome to Our Store</h2>
+          <p>${requirements.description || "Find the best products for your needs"}</p>
+          <button class="btn btn-primary">Shop Now</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Featured Products Section -->
+    <section class="products-section">
+      <div class="container">
+        <h2 class="section-title">Featured Products</h2>
+        <div class="products-grid">
+          <div class="product-card">
+            <div class="product-image">
+              <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30" alt="Product">
+            </div>
+            <div class="product-info">
+              <h3>Premium Watch</h3>
+              <p class="product-price">$199.99</p>
+              <div class="product-rating">
+                <span>★★★★☆</span>
+                <small>(42 reviews)</small>
+              </div>
+              <button class="btn btn-sm add-to-cart">Add to Cart</button>
+            </div>
+          </div>
+          <div class="product-card">
+            <div class="product-image">
+              <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e" alt="Product">
+            </div>
+            <div class="product-info">
+              <h3>Wireless Headphones</h3>
+              <p class="product-price">$149.99</p>
+              <div class="product-rating">
+                <span>★★★★★</span>
+                <small>(107 reviews)</small>
+              </div>
+              <button class="btn btn-sm add-to-cart">Add to Cart</button>
+            </div>
+          </div>
+          <div class="product-card">
+            <div class="product-image">
+              <img src="https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f" alt="Product">
+            </div>
+            <div class="product-info">
+              <h3>Polaroid Camera</h3>
+              <p class="product-price">$89.99</p>
+              <div class="product-rating">
+                <span>★★★★☆</span>
+                <small>(56 reviews)</small>
+              </div>
+              <button class="btn btn-sm add-to-cart">Add to Cart</button>
+            </div>
+          </div>
+          <div class="product-card">
+            <div class="product-image">
+              <img src="https://images.unsplash.com/photo-1572635196237-14b3f281503f" alt="Product">
+            </div>
+            <div class="product-info">
+              <h3>Stylish Sunglasses</h3>
+              <p class="product-price">$79.99</p>
+              <div class="product-rating">
+                <span>★★★★☆</span>
+                <small>(38 reviews)</small>
+              </div>
+              <button class="btn btn-sm add-to-cart">Add to Cart</button>
+            </div>
+          </div>
+        </div>
+        <div class="view-all-container">
+          <button class="btn btn-outline">View All Products</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+      <div class="container">
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><circle cx="12" cy="20" r="1"></circle></svg>
+            </div>
+            <h3>Free Shipping</h3>
+            <p>Free shipping on all orders over $50</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </div>
+            <h3>Store Pickup</h3>
+            <p>Collect your order from one of our stores</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" x2="4" y1="22" y2="15"></line></svg>
+            </div>
+            <h3>Quality Guarantee</h3>
+            <p>Shop with confidence with our quality guarantee</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10H3"></path><path d="M21 6H3"></path><path d="M21 14H3"></path><path d="M21 18H3"></path></svg>
+            </div>
+            <h3>Easy Returns</h3>
+            <p>30-day return policy for all products</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    ${features.length > 0 ? `
+    <!-- Custom Features Section -->
+    <section class="custom-features-section">
+      <div class="container">
+        <h2 class="section-title">Store Features</h2>
+        <div class="custom-features-grid">
+          ${features.map(feature => `
+            <div class="custom-feature-card">
+              <h3>${feature}</h3>
+              <p>Implemented with care and attention to detail.</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+    ` : ''}
+    
+    <!-- Newsletter Section -->
+    <section class="newsletter-section">
+      <div class="container">
+        <div class="newsletter-content">
+          <h2>Subscribe to Our Newsletter</h2>
+          <p>Get the latest updates on new products and upcoming sales</p>
+          <form class="newsletter-form">
+            <input type="email" placeholder="Your email address" required>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>Shop</h3>
+          <ul>
+            <li><a href="#">All Products</a></li>
+            <li><a href="#">New Arrivals</a></li>
+            <li><a href="#">Best Sellers</a></li>
+            <li><a href="#">Sale Items</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Customer Service</h3>
+          <ul>
+            <li><a href="#">Contact Us</a></li>
+            <li><a href="#">Shipping Policy</a></li>
+            <li><a href="#">Returns & Exchanges</a></li>
+            <li><a href="#">FAQs</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>About Us</h3>
+          <ul>
+            <li><a href="#">Our Story</a></li>
+            <li><a href="#">Blog</a></li>
+            <li><a href="#">Careers</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+          </ul>
+        </div>
+        <div class="footer-section">
+          <h3>Follow Us</h3>
+          <div class="social-links">
+            <a href="#" class="social-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+            </a>
+            <a href="#" class="social-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line></svg>
+            </a>
+            <a href="#" class="social-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path></svg>
+            </a>
+            <a href="#" class="social-link">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© ${new Date().getFullYear()} ${requirements.projectName || "E-commerce Store"}. All rights reserved.</p>
+      </div>
+    </div>
   </footer>
 
-  <script>
-    // Basic JavaScript functionality
-    document.addEventListener('DOMContentLoaded', () => {
-      const cards = document.querySelectorAll('.card');
-      
-      cards.forEach(card => {
-        card.addEventListener('click', () => {
-          card.style.transform = 'scale(1.05)';
-          setTimeout(() => {
-            card.style.transform = 'scale(1)';
-          }, 200);
-        });
-      });
-      
-      console.log('${projectName} initialized');
-    });
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>`;
+}
+
+function generateEcommerceCss(themeColor: string): string {
+  // Get theme color values
+  const colors = getThemeColors(themeColor);
+  
+  return `/* E-commerce Store Styles */
+:root {
+  --primary-color: ${colors.primary};
+  --secondary-color: ${colors.secondary};
+  --accent-color: ${colors.accent};
+  --text-color: #333;
+  --light-gray: #f8f9fa;
+  --border-color: #e2e8f0;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.6rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.btn-sm {
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.btn-outline:hover {
+  background-color: var(--light-gray);
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  color: var(--text-color);
+}
+
+/* Header */
+.header {
+  background-color: white;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 70px;
+}
+
+.logo h1 {
+  font-size: 1.5rem;
+  color: var(--primary-color);
+}
+
+.nav ul {
+  display: flex;
+}
+
+.nav ul li {
+  margin-right: 1.5rem;
+}
+
+.nav ul li a {
+  position: relative;
+  padding-bottom: 5px;
+}
+
+.nav ul li a.active::after,
+.nav ul li a:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cart-icon {
+  position: relative;
+}
+
+.cart-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.7rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hero Section */
+.hero {
+  background-color: var(--light-gray);
+  padding: 4rem 0;
+  text-align: center;
+}
+
+.hero-content {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.hero h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-color);
+}
+
+.hero p {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  color: #666;
+}
+
+/* Products Section */
+.products-section {
+  padding: 4rem 0;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  position: relative;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50px;
+  height: 3px;
+  background-color: var(--primary-color);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.product-card {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
+
+.product-image {
+  height: 200px;
+  overflow: hidden;
+}
+
+.product-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image img {
+  transform: scale(1.05);
+}
+
+.product-info {
+  padding: 1.2rem;
+}
+
+.product-info h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.product-price {
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 0.7rem;
+}
+
+.product-rating {
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.product-rating span {
+  color: #ffc107;
+  margin-right: 0.5rem;
+}
+
+.product-rating small {
+  color: #666;
+}
+
+.view-all-container {
+  text-align: center;
+  margin-top: 3rem;
+}
+
+/* Features Section */
+.features-section {
+  background-color: var(--light-gray);
+  padding: 4rem 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.feature-icon {
+  width: 60px;
+  height: 60px;
+  background-color: var(--light-gray);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: var(--primary-color);
+}
+
+.feature-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.feature-card p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Custom Features Section */
+.custom-features-section {
+  padding: 4rem 0;
+}
+
+.custom-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.custom-feature-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--primary-color);
+}
+
+.custom-feature-card h3 {
+  margin-bottom: 0.5rem;
+  color: var(--primary-color);
+}
+
+.custom-feature-card p {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Newsletter Section */
+.newsletter-section {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 4rem 0;
+}
+
+.newsletter-content {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.newsletter-content h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.newsletter-content p {
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.newsletter-form {
+  display: flex;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.newsletter-form input {
+  flex: 1;
+  padding: 0.8rem 1rem;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.newsletter-form button {
+  border-radius: 0 4px 4px 0;
+  background-color: white;
+  color: var(--primary-color);
+}
+
+.newsletter-form button:hover {
+  background-color: var(--light-gray);
+}
+
+/* Footer */
+.footer {
+  background-color: var(--light-gray);
+  padding-top: 4rem;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  padding-bottom: 3rem;
+}
+
+.footer-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.footer-section h3::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 30px;
+  height: 2px;
+  background-color: var(--primary-color);
+}
+
+.footer-section ul li {
+  margin-bottom: 0.7rem;
+}
+
+.footer-section ul li a {
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.footer-section ul li a:hover {
+  color: var(--primary-color);
+}
+
+.social-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border-radius: 50%;
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.social-link:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .header-content {
+    height: auto;
+    flex-direction: column;
+    padding: 1rem 0;
   }
   
-  // Basic Express backend
-  if (requirements.techStack.includes("Node.js") || 
-      requirements.techStack.includes("Express")) {
-    backendCode = `const express = require('express');
-const cors = require('cors');
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Routes
-app.get('/api', (req, res) => {
-  res.json({ message: 'Welcome to ${projectName} API' });
-});
-
-${requirements.features.map(feature => `
-// ${feature} endpoint
-app.get('/api/${feature.toLowerCase().replace(/\s+/g, '-')}', (req, res) => {
-  res.json({ 
-    feature: '${feature}',
-    status: 'implemented',
-    data: { /* sample data for ${feature} */ }
-  });
-});`).join('\n')}
-
-// Start server
-app.listen(PORT, () => {
-  console.log(\`Server running on port \${PORT}\`);
-});`;
+  .nav {
+    margin: 1rem 0;
   }
   
-  // Prepare and return the generated project
-  const generatedProject: GeneratedProject = {
-    id: `proj-${Date.now()}`,
-    name: projectName,
-    description: requirements.description || `A ${projectName} generated with Thynk AI`,
-    codeSnippets: {
-      frontend: frontendCode,
-      backend: backendCode
-    },
-    techStack: [...requirements.techStack],
-    structure: {
-      frontend: generateFrontendStructure(requirements.techStack),
-      backend: generateBackendStructure(requirements.techStack)
-    }
-  };
-  
-  // Create the downloadable ZIP and attach it to the project
-  createProjectZip(generatedProject)
-    .then(url => {
-      generatedProject.downloadUrl = url;
-    })
-    .catch(err => console.error("Failed to create fallback ZIP:", err));
-  
-  toast.success("Project generated with fallback template!");
-  return generatedProject;
-};
-
-const generateFrontendStructure = (techStack: string[]): string[] => {
-  const structure = [
-    "src/",
-    "src/components/",
-    "src/pages/",
-    "src/hooks/",
-    "src/utils/",
-    "public/",
-    "package.json"
-  ];
-
-  if (techStack.includes("React")) {
-    structure.push("src/App.jsx", "src/index.jsx");
-  }
-
-  if (techStack.includes("TypeScript")) {
-    structure.push("tsconfig.json");
-    // Convert any .jsx to .tsx
-    const tsxStructure = structure.map(path => 
-      path.endsWith(".jsx") ? path.replace(".jsx", ".tsx") : path
-    );
-    return tsxStructure;
-  }
-
-  if (techStack.includes("Next.js")) {
-    structure.push(
-      "pages/",
-      "pages/api/",
-      "pages/_app.jsx",
-      "pages/index.jsx",
-      "next.config.js"
-    );
-  }
-
-  if (techStack.includes("Tailwind CSS")) {
-    structure.push("tailwind.config.js", "postcss.config.js");
-  }
-
-  return structure;
-};
-
-const generateBackendStructure = (techStack: string[]): string[] => {
-  const structure = [
-    "server.js",
-    "routes/",
-    "controllers/",
-    "models/",
-    "middleware/",
-    "package.json"
-  ];
-
-  if (techStack.includes("Express")) {
-    structure.push("routes/api.js");
-  }
-
-  if (techStack.includes("MongoDB")) {
-    structure.push("models/db.js");
-  }
-
-  if (techStack.includes("PostgreSQL")) {
-    structure.push("models/db.js", "migrations/");
-  }
-
-  if (techStack.includes("GraphQL")) {
-    structure.push("schema/", "resolvers/");
-  }
-
-  return structure;
-};
-
-export const saveProject = async (project: GeneratedProject): Promise<void> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  toast.success("Project saved successfully!");
-  
-  console.log("Project saved:", project);
-};
-
-export const getRecommendedFeatures = async (projectType: string): Promise<string[]> => {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  switch (projectType.toLowerCase()) {
-    case 'e-commerce':
-      return ['Product catalog', 'Shopping cart', 'Checkout', 'User accounts', 'Payment processing'];
-    case 'blog':
-      return ['Article management', 'Comments', 'Categories', 'Tags', 'Search'];
-    case 'dashboard':
-      return ['Analytics charts', 'Data tables', 'Filtering', 'User management', 'Notifications'];
-    case 'social media':
-      return ['User profiles', 'Posts/Timeline', 'Messaging', 'Notifications', 'Friend connections'];
-    case 'portfolio':
-      return ['Project showcase', 'About section', 'Skills display', 'Contact form', 'Resume download'];
-    default:
-      return ['Authentication', 'User profiles', 'Data storage', 'API integration', 'Responsive design'];
-  }
-};
-
-export const downloadProject = async (project: GeneratedProject): Promise<string> => {
-  if (project.downloadUrl) {
-    return project.downloadUrl;
+  .nav ul {
+    flex-wrap: wrap;
+    justify-content: center;
   }
   
-  return await createProjectZip(project);
-};
+  .nav ul li {
+    margin: 0 0.7rem 0.5rem;
+  }
+  
+  .hero {
+    padding: 3rem 0;
+  }
+  
+  .hero h2 {
+    font-size: 2rem;
+  }
+  
+  .newsletter-form {
+    flex-direction: column;
+  }
+  
+  .newsletter-form input {
+    border-radius: 4px;
+    margin-bottom: 1rem;
+  }
+  
+  .newsletter-form button {
+    border-radius: 4
