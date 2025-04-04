@@ -389,14 +389,7 @@ function generateEcommerceCss(themeColor: string): string {
   
   return `/* E-commerce Store Styles */
 :root {
-  --primary-color: ${colors.primary};
-  --secondary-color: ${colors.secondary};
-  --accent-color: ${colors.accent};
-  --text-color: #333;
-  --light-gray: #f8f9fa;
-  --border-color: #e2e8f0;
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
+  --primary-color: ${colors.primary};\n  --secondary-color: ${colors.secondary};\n  --accent-color: ${colors.accent};\n  --text-color: #333;\n  --light-gray: #f8f9fa;\n  --border-color: #e2e8f0;\n  --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);\n}
 
 * {
   margin: 0;
@@ -895,4 +888,4 @@ img {
   }
   
   .newsletter-form button {
-    border-radius: 4
+    border-radius: 4px;
