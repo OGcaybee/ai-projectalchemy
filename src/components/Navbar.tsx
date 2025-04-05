@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="w-full bg-[#d1fffb] border-b border-[#5A9C99] sticky top-0 z-50">
+    <header className="w-full bg-gradient-to-r from-[#d1fffb] to-[#F6F8D5] border-b border-[#5A9C99] sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -35,6 +36,8 @@ const Navbar = () => {
               className="flex items-center font-bold text-xl"
               style={{ color: "#006A71" }} 
             >
+              <img src="/logo.svg" alt="ThynkAI Logo" className="h-8 w-8 mr-2" />
+              <span>Thynk AI</span>
             </Link>
           </div>
 
@@ -95,8 +98,18 @@ const Navbar = () => {
                   <Menu className="text-[#5A9C99]" />
                 </Button>
               </SheetTrigger>
-              <SheetContent className="bg-[#F6F8D5]">
+              <SheetContent className="bg-gradient-to-b from-[#E1F7F5] to-[#F6F8D5]">
                 <div className="flex flex-col mt-8 space-y-4">
+                  <Link 
+                    to="/" 
+                    className="flex items-center font-bold text-xl mb-6"
+                    style={{ color: "#006A71" }} 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <img src="/logo.svg" alt="ThynkAI Logo" className="h-8 w-8 mr-2" />
+                    <span>Thynk AI</span>
+                  </Link>
+                  
                   {["/templates", "/generate", "/docs", "/pricing"].map((path) => (
                     <Link
                       key={path}
