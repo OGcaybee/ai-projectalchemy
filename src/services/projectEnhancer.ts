@@ -475,7 +475,7 @@ const Hero = ({ title, subtitle, ctaText, ctaUrl, secondaryCtaText, secondaryCta
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50">
       {/* Background pattern */}
       <div className="hidden lg:block lg:absolute lg:inset-0">
         <svg
@@ -494,10 +494,10 @@ const Hero = ({ title, subtitle, ctaText, ctaUrl, secondaryCtaText, secondaryCta
               height="20"
               patternUnits="userSpaceOnUse"
             >
-              <rect x="0" y="0" width="4" height="4" className="text-blue-200" fill="currentColor" />
+              <rect x="0" y="0" width="4" height="4" className="text-gray-200" fill="currentColor" />
             </pattern>
           </defs>
-          <rect y="72" width="640" height="640" className="text-blue-50" fill="currentColor" />
+          <rect y="72" width="640" height="640" className="text-white" fill="currentColor" />
           <rect x="118" width="404" height="784" fill="url(#9ebea6f4-a1f5-4d96-8c4e-4c2abf658047)" />
         </svg>
       </div>
@@ -515,7 +515,7 @@ const Hero = ({ title, subtitle, ctaText, ctaUrl, secondaryCtaText, secondaryCta
           >
             <div>
               <motion.div 
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium leading-5 bg-blue-100 text-blue-800 mb-4"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium leading-5 bg-gray-100 text-gray-800 mb-4"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
@@ -1470,9 +1470,9 @@ const generateEstimatedTime = (complexity: string, requirements: ProjectRequirem
 const generateDesignSystem = (themeColor?: string): { colors: Record<string, string>; typography: Record<string, string>; spacing: Record<string, string> } => {
   // Default colors
   const defaultColors = {
-    primary: '#7c3aed',
-    secondary: '#6d28d9',
-    accent: '#a78bfa',
+    primary: '#333333',
+    secondary: '#ffffff',
+    accent: '#f8f8f8',
     background: '#ffffff',
     text: '#1f2937',
     muted: '#6b7280',
@@ -1490,40 +1490,40 @@ const generateDesignSystem = (themeColor?: string): { colors: Record<string, str
       colors = {
         ...colors,
         primary: '#059669',
-        secondary: '#047857',
-        accent: '#34d399'
+        secondary: '#ffffff',
+        accent: '#f8f8f8'
       };
       break;
     case 'blue':
       colors = {
         ...colors,
         primary: '#2563eb',
-        secondary: '#1d4ed8',
-        accent: '#60a5fa'
+        secondary: '#ffffff',
+        accent: '#f8f8f8'
       };
       break;
     case 'red':
       colors = {
         ...colors,
         primary: '#dc2626',
-        secondary: '#b91c1c',
-        accent: '#f87171'
+        secondary: '#ffffff',
+        accent: '#f8f8f8'
       };
       break;
     case 'orange':
       colors = {
         ...colors,
         primary: '#ea580c',
-        secondary: '#c2410c',
-        accent: '#fb923c'
+        secondary: '#ffffff',
+        accent: '#f8f8f8'
       };
       break;
     case 'pink':
       colors = {
         ...colors,
         primary: '#db2777',
-        secondary: '#be185d',
-        accent: '#f472b6'
+        secondary: '#ffffff',
+        accent: '#f8f8f8'
       };
       break;
   }
@@ -1734,4 +1734,13 @@ MIT`,
   });
   
   return configurations;
+};
+
+export default {
+  enhanceProject,
+  generateConfigurationFiles,
+  determineProjectComplexity,
+  generateEnhancedStructure,
+  generateEstimatedTime,
+  generateDesignSystem
 };
