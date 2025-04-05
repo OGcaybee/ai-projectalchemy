@@ -9,6 +9,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
   const location = useLocation();
@@ -16,7 +17,7 @@ const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const isActive = (path) => {
+  const isActive = (path: string) => {
     return location.pathname === path;
   };
 
@@ -26,15 +27,14 @@ const Navbar = () => {
   };
 
   return (
-    <header className="w-full bg-gradient-to-r from-[#d1fffb] to-[#F6F8D5] border-b border-[#5A9C99] sticky top-0 z-50 shadow-sm">
+    <header className="w-full bg-background border-b border-border sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
             <Link 
               to="/" 
-              className="flex items-center font-bold text-xl"
-              style={{ color: "#006A71" }} 
+              className="flex items-center font-bold text-xl text-primary"
             >
               <img src="/logo.svg" alt="ThynkAI Logo" className="h-8 w-8 mr-2" />
               <span>Thynk AI</span>
@@ -49,8 +49,8 @@ const Navbar = () => {
                 to={path}
                 className={`text-sm font-medium ${
                   isActive(path)
-                    ? "text-[#006A71] font-semibold"
-                    : "text-[#5A9C99] hover:text-[#006A71]"
+                    ? "text-primary font-semibold"
+                    : "text-foreground hover:text-primary"
                 } transition-colors`}
               >
                 {path.replace("/", "").charAt(0).toUpperCase() + path.slice(2)}
@@ -58,15 +58,16 @@ const Navbar = () => {
             ))}
           </nav>
 
-          {/* Auth Buttons */}
+          {/* Auth Buttons and Theme Toggle */}
           <div className="hidden md:flex items-center space-x-4">
+            <ThemeToggle />
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-[#006A71] font-bold">Hi, {user?.name}</span>
+                <span className="text-sm text-foreground font-bold">Hi, {user?.name}</span>
                 <Button
                   variant="outline"
                   onClick={handleLogout}
-                  className="text-sm bg-[#5A9C99] text-white hover:bg-[#5A9C99]/90"
+                  className="text-sm bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   Logout
                 </Button>
@@ -74,14 +75,14 @@ const Navbar = () => {
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="ghost" className="text-sm text-[#5A9C99] hover:text-[#006A71]">
+                  <Button variant="ghost" className="text-sm text-foreground hover:text-primary">
                     Login
                   </Button>
                 </Link>
                 <Link to="/signup">
                   <Button
                     variant="default"
-                    className="text-sm bg-[#006A71] hover:bg-[#006A71]/90 text-white"
+                    className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     Signup
                   </Button>
@@ -91,19 +92,19 @@ const Navbar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-2">
+            <ThemeToggle />
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
-                  <Menu className="text-[#5A9C99]" />
+                  <Menu className="text-foreground" />
                 </Button>
               </SheetTrigger>
-              <SheetContent className="bg-gradient-to-b from-[#E1F7F5] to-[#F6F8D5]">
+              <SheetContent className="bg-background">
                 <div className="flex flex-col mt-8 space-y-4">
                   <Link 
                     to="/" 
-                    className="flex items-center font-bold text-xl mb-6"
-                    style={{ color: "#006A71" }} 
+                    className="flex items-center font-bold text-xl mb-6 text-primary"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <img src="/logo.svg" alt="ThynkAI Logo" className="h-8 w-8 mr-2" />
@@ -114,16 +115,16 @@ const Navbar = () => {
                     <Link
                       key={path}
                       to={path}
-                      className="text-lg font-medium text-[#5A9C99] hover:text-[#006A71] transition-colors"
+                      className="text-lg font-medium text-foreground hover:text-primary transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       {path.replace("/", "").charAt(0).toUpperCase() + path.slice(2)}
                     </Link>
                   ))}
-                  <div className="pt-4 border-t border-[#A1A55C]">
+                  <div className="pt-4 border-t border-border">
                     {isAuthenticated ? (
                       <div className="flex flex-col space-y-4">
-                        <span className="text-sm text-[#5A9C99] font-bold">Hi, {user?.name}</span>
+                        <span className="text-sm text-foreground font-bold">Hi, {user?.name}</span>
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -131,7 +132,7 @@ const Navbar = () => {
                             setIsMobileMenuOpen(false);
                             navigate("/");
                           }}
-                          className="bg-[#5A9C99] text-white hover:bg-[#5A9C99]/90"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                           Logout
                         </Button>
@@ -139,14 +140,14 @@ const Navbar = () => {
                     ) : (
                       <div className="flex flex-col space-y-4">
                         <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                          <Button variant="outline" className="w-full text-[#5A9C99] hover:text-[#006A71]">
+                          <Button variant="outline" className="w-full text-foreground hover:text-primary">
                             Login
                           </Button>
                         </Link>
                         <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
                           <Button
                             variant="default"
-                            className="w-full bg-[#006A71] hover:bg-[#006A71]/90 text-white"
+                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                           >
                             Signup
                           </Button>
