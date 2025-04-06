@@ -8,9 +8,10 @@ interface User {
   password: string;
   credits: number;
   isPro: boolean;
+  isSuperUser?: boolean;
 }
 
-// Sample user data for demonstration
+// Sample user data for demonstration including a superuser
 const sampleUsers: User[] = [
   {
     id: '1',
@@ -18,7 +19,8 @@ const sampleUsers: User[] = [
     email: 'admin@thynkai.com',
     password: 'admin123',
     credits: 999,
-    isPro: true
+    isPro: true,
+    isSuperUser: true // This is the superuser with unlimited credits
   },
   {
     id: '2',

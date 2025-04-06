@@ -10,6 +10,7 @@ export interface User {
   email: string;
   credits: number;
   isPro: boolean;
+  isSuperUser?: boolean; // Added superuser flag
 }
 
 // Define the shape of auth context
