@@ -19,6 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
+  signup: (name: string, email: string, password: string) => Promise<boolean>; // Add this for compatibility
   logout: () => void;
   updateCredits: (newCredits: number) => void;
   upgradeToPro: () => void;
@@ -31,6 +32,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => false,
   register: async () => false,
+  signup: async () => false, // Add this for compatibility
   logout: () => {},
   updateCredits: () => {},
   upgradeToPro: () => {},
@@ -124,6 +126,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Signup handler (wrapper for register to maintain compatibility with components using signup)
+  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
+    return register({ name, email, password });
+  };
+
   // Logout handler
   const logout = () => {
     localStorage.removeItem("thynkai_token");
@@ -160,6 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     login,
     register,
+    signup, // Add this for compatibility
     logout,
     updateCredits,
     upgradeToPro,
