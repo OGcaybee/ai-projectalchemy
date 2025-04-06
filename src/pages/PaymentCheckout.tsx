@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -9,11 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
-interface CheckoutProps {}
-
-const PaymentCheckout: React.FC<CheckoutProps> = () => {
+const PaymentCheckout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, upgradeToPro, updateCredits } = useAuth();
@@ -46,17 +44,52 @@ const PaymentCheckout: React.FC<CheckoutProps> = () => {
   };
   
   // Get current plan or topup details
-  const currentPlan = isTopup ? topupOptions[topupOption as keyof typeof topupOptions] : plans[planId as keyof typeof plans];
+  const currentPlan = isTopup 
+    ? topupOptions[topupOption as keyof typeof topupOptions] 
+    : plans[planId as keyof typeof plans];
+  
+  useEffect(() => {
+    // Check if we have valid parameters
+    if (!currentPlan) {
+      toast.error("Invalid plan or topup option selected");
+      navigate("/pricing");
+    }
+  }, [currentPlan, navigate]);
   
   const handlePayment = () => {
     // Validate form
     if (paymentMethod === "card") {
       if (!cardNumber || !cardName || !cardExpiry || !cardCvc) {
-        toast({
-          variant: "destructive",
-          title: "Missing information",
-          description: "Please fill in all card details",
-        });
+        toast.error("Please fill in all card details");
+        return;
+      }
+      
+      // Simple validation for card number format
+      if (cardNumber.replace(/\s/g, '').length !== 16) {
+        toast.error("Please enter a valid 16-digit card number");
+        return;
+      }
+      
+      // Simple validation for expiry date
+      if (!cardExpiry.match(/^\d{2}\/\d{2}$/)) {
+        toast.error("Please enter a valid expiry date (MM/YY)");
+        return;
+      }
+      
+      // Simple validation for CVC
+      if (cardCvc.length !== 3) {
+        toast.error("Please enter a valid 3-digit CVC");
+        return;
+      }
+    } else if (paymentMethod === "upi") {
+      const upiInput = document.getElementById("upi-id") as HTMLInputElement;
+      if (!upiInput || !upiInput.value) {
+        toast.error("Please enter your UPI ID");
+        return;
+      }
+      
+      if (!upiInput.value.includes('@')) {
+        toast.error("Please enter a valid UPI ID");
         return;
       }
     }
@@ -67,23 +100,23 @@ const PaymentCheckout: React.FC<CheckoutProps> = () => {
     setTimeout(() => {
       setLoading(false);
       
-      if (isTopup) {
-        // Add credits for topup
-        const newCredits = (user?.credits || 0) + currentPlan.credits;
-        updateCredits(newCredits);
-        
-        toast({
-          title: "Payment successful",
-          description: `Added ${currentPlan.credits} credits to your account!`,
-        });
+      if (user) {
+        if (isTopup && currentPlan) {
+          // Add credits for topup
+          const newCredits = (user.credits || 0) + currentPlan.credits;
+          updateCredits(newCredits);
+          
+          toast.success(`Added ${currentPlan.credits} credits to your account!`);
+        } else {
+          // Upgrade to PRO for subscription
+          upgradeToPro();
+          
+          toast.success(`You have been upgraded to ${currentPlan.name}!`);
+        }
       } else {
-        // Upgrade to PRO for subscription
-        upgradeToPro();
-        
-        toast({
-          title: "Payment successful",
-          description: `You have been upgraded to ${currentPlan.name}!`,
-        });
+        toast.error("You need to be logged in to complete this purchase.");
+        navigate("/login");
+        return;
       }
       
       // Redirect to success page
@@ -235,7 +268,7 @@ const PaymentCheckout: React.FC<CheckoutProps> = () => {
                   onClick={handlePayment}
                   disabled={loading}
                 >
-                  {loading ? "Processing..." : `Pay ₹${currentPlan.price.toFixed(2)}`}
+                  {loading ? "Processing..." : `Pay ₹${currentPlan?.price.toFixed(2)}`}
                 </Button>
               </CardFooter>
             </Card>
@@ -248,13 +281,13 @@ const PaymentCheckout: React.FC<CheckoutProps> = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
-                  <span>{isTopup ? currentPlan.name : `${currentPlan.name} Plan`}</span>
-                  <span>₹{currentPlan.price.toFixed(2)}</span>
+                  <span>{isTopup ? currentPlan?.name : `${currentPlan?.name} Plan`}</span>
+                  <span>₹{currentPlan?.price.toFixed(2)}</span>
                 </div>
                 
                 {!isTopup && (
                   <div className="text-sm text-gray-500">
-                    Billed {currentPlan.interval === "month" ? "monthly" : "yearly"}
+                    Billed {currentPlan?.interval === "month" ? "monthly" : "yearly"}
                   </div>
                 )}
                 
@@ -262,13 +295,13 @@ const PaymentCheckout: React.FC<CheckoutProps> = () => {
                 
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>₹{currentPlan.price.toFixed(2)}</span>
+                  <span>₹{currentPlan?.price.toFixed(2)}</span>
                 </div>
                 
                 {isTopup && (
                   <div className="bg-green-50 text-green-800 p-3 rounded-md flex items-start text-sm">
                     <Check className="h-4 w-4 mr-2 mt-0.5" />
-                    <span>You will receive {currentPlan.credits} AI generation credits</span>
+                    <span>You will receive {currentPlan?.credits} AI generation credits</span>
                   </div>
                 )}
                 

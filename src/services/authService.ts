@@ -18,7 +18,7 @@ const sampleUsers: User[] = [
     name: 'Admin User',
     email: 'admin@thynkai.com',
     password: 'admin123',
-    credits: 999,
+    credits: 999999, // Unlimited credits for admin
     isPro: true,
     isSuperUser: true // This is the superuser with unlimited credits
   },
@@ -61,6 +61,27 @@ class AuthService {
     
     // Save sample users to local storage if not already there
     if (!storedUsers) {
+      localStorage.setItem('thynkai_users', JSON.stringify(this.users));
+    }
+    
+    // Always ensure admin user exists with unlimited credits
+    const adminUser = this.users.find(u => u.email === 'admin@thynkai.com');
+    if (!adminUser) {
+      this.users.push({
+        id: 'admin-' + Date.now(),
+        name: 'Admin User',
+        email: 'admin@thynkai.com',
+        password: 'admin123',
+        credits: 999999,
+        isPro: true,
+        isSuperUser: true
+      });
+      localStorage.setItem('thynkai_users', JSON.stringify(this.users));
+    } else {
+      // Ensure admin always has unlimited credits and superuser status
+      adminUser.credits = 999999;
+      adminUser.isPro = true;
+      adminUser.isSuperUser = true;
       localStorage.setItem('thynkai_users', JSON.stringify(this.users));
     }
   }
@@ -107,7 +128,7 @@ class AuthService {
     
     // Create new user
     const newUser: User = {
-      id: `${Date.now()}`,
+      id: `user-${Date.now()}`,
       name,
       email,
       password,
@@ -176,6 +197,12 @@ class AuthService {
   updateUserCredits = (userId: string, credits: number) => {
     const userIndex = this.users.findIndex(u => u.id === userId);
     if (userIndex >= 0) {
+      // Don't reduce credits for superuser
+      if (this.users[userIndex].isSuperUser) {
+        console.log("Superuser credits remain unlimited");
+        return;
+      }
+      
       this.users[userIndex].credits = credits;
       localStorage.setItem('thynkai_users', JSON.stringify(this.users));
     }

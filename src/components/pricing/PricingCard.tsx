@@ -6,6 +6,7 @@ import { IndianRupee } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { PricingPlan } from "@/services/pricingService";
 import PlanFeatureList from "./PlanFeatureList";
+import { toast } from "sonner";
 
 interface PricingCardProps {
   plan: PricingPlan;
@@ -33,11 +34,17 @@ const PricingCard: React.FC<PricingCardProps> = ({
   };
   
   const handleSubscription = () => {
+    if (plan.id === "free") {
+      toast.success("You're already on the Free plan!");
+      return;
+    }
+    
     if (isAuthenticated) {
       // Redirect to checkout page with plan parameter
       navigate(`/payment-checkout?plan=${plan.id}`);
     } else {
       // Redirect to login first
+      toast.error("Please login to subscribe to a plan");
       navigate('/login');
     }
   };
