@@ -1,933 +1,774 @@
+import { generateProjectCss } from "./cssGenerationService";
+import { enhanceProjectContent } from "./aiServiceEnhancer";
 
-import { toast } from "sonner";
-import JSZip from "jszip";
-
-export type ProjectRequirement = {
+export interface ProjectRequirement {
   projectType: string;
-  description: string;
-  features: string[];
-  techStack: string[];
-  projectName?: string;
+  projectName: string;
   themeColor?: string;
-  imageUrls?: string[];
-};
+  layout?: string;
+  features?: string[];
+  description?: string;
+  targetAudience?: string;
+  complexity?: string;
+  customInstructions?: string;
+}
 
-export type GeneratedProject = {
-  id: string;
-  name: string;
-  description: string;
-  codeSnippets: {
-    frontend: string;
-    backend: string;
-  };
-  techStack: string[];
-  structure: {
-    frontend: string[];
-    backend: string[];
-  };
-  previewImageUrl?: string;
-  downloadUrl?: string;
-};
-
-// Theme color utilities
-const themeColors = {
-  default: {
-    primary: "#7c3aed",
-    secondary: "#6d28d9",
-    accent: "#4c1d95"
-  },
-  green: {
-    primary: "#059669",
-    secondary: "#047857",
-    accent: "#065f46"
-  },
-  blue: {
-    primary: "#2563eb",
-    secondary: "#1d4ed8",
-    accent: "#1e40af"
-  },
-  red: {
-    primary: "#dc2626",
-    secondary: "#b91c1c",
-    accent: "#991b1b"
-  },
-  orange: {
-    primary: "#ea580c",
-    secondary: "#c2410c",
-    accent: "#9a3412"
-  },
-  pink: {
-    primary: "#db2777",
-    secondary: "#be185d",
-    accent: "#9d174d"
-  }
-};
+interface GeneratedProject {
+  html: string;
+  css: string;
+  js: string;
+}
 
 // Generate project based on requirements
 export const generateProject = async (requirements: ProjectRequirement): Promise<GeneratedProject> => {
+  console.log("Generating project with requirements:", requirements);
+
   try {
-    toast.info("Starting project generation...");
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Generate HTML based on project type and requirements
+    const html = generateHtml(requirements);
     
-    // Generate a basic project structure
-    const project = await generateTemplateBasedProject(requirements);
+    // Generate CSS using the separate service
+    const css = generateProjectCss(requirements);
     
-    toast.success("Project generated successfully!");
-    return project;
-    
+    // Generate JS based on project type and features
+    const js = generateJs(requirements);
+
+    return { html, css, js };
   } catch (error) {
-    console.error("Error generating project:", error);
-    toast.error("Failed to generate project. Please try again later.");
-    throw error;
+    console.error("Error in project generation:", error);
+    throw new Error("Failed to generate project. Please try again.");
   }
 };
 
-// Create a downloadable ZIP file for the project
-export const downloadProject = async (project: GeneratedProject): Promise<string> => {
+// Generate project using AI prompt
+export const generateWithAI = async (prompt: string): Promise<GeneratedProject> => {
+  console.log("Generating project with AI prompt:", prompt);
+
   try {
-    const zip = new JSZip();
+    // Simulate API call delay (would be real AI processing time in production)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Extract project requirements from the prompt
+    const projectType = extractProjectType(prompt);
+    const features = extractFeatures(prompt);
+    const themeColor = extractColor(prompt);
+
+    // Construct a project requirement object
+    const requirements: ProjectRequirement = {
+      projectType,
+      projectName: "AI Generated Project",
+      themeColor,
+      features,
+      description: prompt,
+    };
+
+    // Generate base content
+    let html = generateAIHtml(prompt, requirements);
+    let css = generateAICss(prompt, requirements);
+    let js = generateAIJs(prompt, requirements);
+
+    // Enhance content using the new service
+    const enhancedContent = await enhanceProjectContent(prompt, { html, css, js });
     
-    // Add HTML file
-    if (project.codeSnippets.frontend) {
-      zip.file("index.html", project.codeSnippets.frontend);
-    }
-    
-    // Add CSS file (if available)
-    const cssContent = extractCSS(project.codeSnippets.frontend);
-    if (cssContent) {
-      zip.file("styles.css", cssContent);
-    } else {
-      // Add a default CSS file if no CSS was extracted
-      zip.file("styles.css", generateDefaultCSS(project));
-    }
-    
-    // Add JavaScript file
-    if (project.codeSnippets.backend) {
-      zip.file("script.js", project.codeSnippets.backend);
-    } else {
-      zip.file("script.js", generateDefaultJS(project));
-    }
-    
-    // Add README
-    zip.file("README.md", generateReadme(project));
-    
-    // Create assets folder
-    const assets = zip.folder("assets");
-    if (assets && project.previewImageUrl) {
-      try {
-        // Note: In a real implementation, you'd want to download and include the actual image
-        assets.file("placeholder.txt", "Image would be downloaded here in a production environment");
-      } catch (error) {
-        console.error("Error adding image to ZIP:", error);
-      }
-    }
-    
-    // Generate the ZIP file
-    const content = await zip.generateAsync({ type: "blob" });
-    
-    // Create a URL for the blob
-    return URL.createObjectURL(content);
+    return enhancedContent;
   } catch (error) {
-    console.error("Error creating project ZIP:", error);
-    toast.error("Failed to create downloadable project");
-    throw error;
+    console.error("Error in AI generation:", error);
+    throw new Error("Failed to generate project with AI. Please try again.");
   }
 };
 
-// Core project generation function
-const generateTemplateBasedProject = async (requirements: ProjectRequirement): Promise<GeneratedProject> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+// Helper function to extract project type from prompt
+const extractProjectType = (prompt: string): string => {
+  const promptLower = prompt.toLowerCase();
   
-  const projectName = requirements.projectName || requirements.projectType || "Generated Project";
-  const themeColor = requirements.themeColor || 'default';
-  
-  // Get content based on project type
-  const { html, css, js } = generateProjectContent(requirements);
-  
-  // Create structure based on project type
-  const structure = generateProjectStructure(requirements.projectType);
-  
-  // Create a project object
-  const generatedProject: GeneratedProject = {
-    id: `proj-${Date.now()}`,
-    name: projectName,
-    description: requirements.description || `A ${requirements.projectType} application`,
-    codeSnippets: {
-      frontend: html,
-      backend: js
-    },
-    techStack: [...requirements.techStack],
-    structure: structure,
-    previewImageUrl: requirements.imageUrls && requirements.imageUrls.length > 0 ? requirements.imageUrls[0] : undefined
-  };
-  
-  return generatedProject;
-};
-
-// Generate project content (HTML, CSS, JS)
-const generateProjectContent = (requirements: ProjectRequirement) => {
-  const projectType = requirements.projectType.toLowerCase();
-  
-  // Generate content based on project type
-  let html = "", js = "";
-  
-  if (projectType.includes("e-commerce") || projectType.includes("ecommerce")) {
-    html = generateEcommerceHTML(requirements);
-    js = generateEcommerceJS(requirements);
-  } else if (projectType.includes("portfolio")) {
-    html = generatePortfolioHTML(requirements);
-    js = generatePortfolioJS(requirements);
-  } else if (projectType.includes("blog")) {
-    html = generateBlogHTML(requirements);
-    js = generateBlogJS(requirements);
-  } else if (projectType.includes("dashboard")) {
-    html = generateDashboardHTML(requirements);
-    js = generateDashboardJS(requirements);
+  if (promptLower.includes("e-commerce") || promptLower.includes("ecommerce") || promptLower.includes("shop")) {
+    return "e-commerce";
+  } else if (promptLower.includes("blog") || promptLower.includes("article")) {
+    return "blog";
+  } else if (promptLower.includes("portfolio") || promptLower.includes("resume")) {
+    return "portfolio";
+  } else if (promptLower.includes("landing") || promptLower.includes("splash")) {
+    return "landing-page";
+  } else if (promptLower.includes("dashboard") || promptLower.includes("admin")) {
+    return "dashboard";
   } else {
-    // Default to landing page
-    html = generateLandingPageHTML(requirements);
-    js = generateLandingPageJS(requirements);
+    return "website";
   }
-  
-  return { html, css: "", js };
 };
 
-// Generate project directory structure
-const generateProjectStructure = (projectType: string) => {
-  const baseStructure = {
-    frontend: [
-      "index.html",
-      "styles.css",
-      "script.js",
-      "assets/"
-    ],
-    backend: []
+// Helper function to extract features from prompt
+const extractFeatures = (prompt: string): string[] => {
+  const features: string[] = [];
+  const promptLower = prompt.toLowerCase();
+  
+  if (promptLower.includes("responsive") || promptLower.includes("mobile")) {
+    features.push("responsive");
+  }
+  
+  if (promptLower.includes("dark mode") || promptLower.includes("dark theme")) {
+    features.push("darkMode");
+  }
+  
+  if (promptLower.includes("animation") || promptLower.includes("transition")) {
+    features.push("animations");
+  }
+  
+  if (promptLower.includes("login") || promptLower.includes("sign in") || promptLower.includes("register")) {
+    features.push("authentication");
+  }
+  
+  if (promptLower.includes("form") || promptLower.includes("contact")) {
+    features.push("forms");
+  }
+  
+  if (promptLower.includes("gallery") || promptLower.includes("slider") || promptLower.includes("carousel")) {
+    features.push("gallery");
+  }
+  
+  // Ensure we have at least some features
+  if (features.length === 0) {
+    features.push("responsive");
+  }
+  
+  return features;
+};
+
+// Helper function to extract color from prompt
+const extractColor = (prompt: string): string | undefined => {
+  const promptLower = prompt.toLowerCase();
+  const colorMapping: Record<string, string> = {
+    blue: "blue",
+    green: "green",
+    red: "red",
+    purple: "purple",
+    orange: "orange",
+    pink: "pink",
+    yellow: "yellow",
+    teal: "teal",
+    gray: "gray"
   };
   
-  // Add project-specific structure
-  if (projectType.toLowerCase().includes("dashboard")) {
-    baseStructure.frontend.push("components/charts.js");
-    baseStructure.frontend.push("components/sidebar.js");
-    baseStructure.frontend.push("components/widgets.js");
-  } else if (projectType.toLowerCase().includes("ecommerce")) {
-    baseStructure.frontend.push("components/product.js");
-    baseStructure.frontend.push("components/cart.js");
-    baseStructure.frontend.push("pages/checkout.html");
-  } else if (projectType.toLowerCase().includes("blog")) {
-    baseStructure.frontend.push("components/post.js");
-    baseStructure.frontend.push("components/comment.js");
-    baseStructure.frontend.push("pages/article.html");
+  for (const [colorName, colorValue] of Object.entries(colorMapping)) {
+    if (promptLower.includes(colorName)) {
+      return colorValue;
+    }
   }
   
-  return baseStructure;
+  return undefined;
 };
 
-// Utility functions
-const extractCSS = (html: string): string => {
-  const styleRegex = /<style>([\s\S]*?)<\/style>/;
-  const match = html.match(styleRegex);
-  return match ? match[1].trim() : "";
-};
-
-const generateDefaultCSS = (project: GeneratedProject): string => {
-  const themeKey = (project as any).themeColor || "default";
-  const colors = themeColors[themeKey as keyof typeof themeColors] || themeColors.default;
+// Base HTML generation function
+const generateHtml = (requirements: ProjectRequirement): string => {
+  const { projectType, projectName, features = [] } = requirements;
   
-  return `/* Generated CSS for ${project.name} */
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.6;
-  color: #333;
-  margin: 0;
-  padding: 0;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 15px;
-}
-
-.header {
-  background-color: ${colors.primary};
-  color: white;
-  padding: 1rem 0;
-}
-
-.btn {
-  display: inline-block;
-  padding: 0.8rem 1.5rem;
-  background-color: ${colors.primary};
-  color: white;
-  border-radius: 4px;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.btn:hover {
-  background-color: ${colors.secondary};
-}
-
-.footer {
-  background-color: #f8f9fa;
-  padding: 2rem 0;
-  margin-top: 3rem;
-}`;
-};
-
-const generateDefaultJS = (project: GeneratedProject): string => {
-  return `// Generated JavaScript for ${project.name}
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('${project.name} application loaded');
-  
-  // Initialize any interactive elements
-  const buttons = document.querySelectorAll('.btn');
-  buttons.forEach(button => {
-    button.addEventListener('click', function(event) {
-      console.log('Button clicked:', event.target.textContent);
-    });
-  });
-});`;
-};
-
-const generateReadme = (project: GeneratedProject): string => {
-  return `# ${project.name}
-
-${project.description}
-
-## Overview
-This project was generated using Thynk AI. It includes a basic structure for a ${project.name.toLowerCase()} application.
-
-## Tech Stack
-${project.techStack.join(', ')}
-
-## Project Structure
-${project.structure.frontend.map(item => `- ${item}`).join('\n')}
-`;
-};
-
-// HTML generators for each project type
-const generateEcommerceHTML = (req: ProjectRequirement) => {
-  return `<!DOCTYPE html>
+  // Template selection based on project type
+  switch (projectType) {
+    case "landing-page":
+      return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${req.projectName || "E-commerce Store"}</title>
+  <title>${projectName}</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
+  <header class="hero">
+    <nav class="navbar">
+      <div class="container">
+        <h1 class="logo">${projectName}</h1>
+        <ul class="nav-links">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+    </nav>
+    
+    <div class="container hero-content">
+      <div class="hero-text">
+        <h2>Welcome to ${projectName}</h2>
+        <p>The best solution for your business needs</p>
+        <button class="btn-primary">Get Started</button>
+      </div>
+      <div class="hero-image">
+        <img src="https://via.placeholder.com/600x400" alt="Hero Image">
+      </div>
+    </div>
+  </header>
+
+  <section id="features" class="features">
     <div class="container">
-      <h1>${req.projectName || "E-commerce Store"}</h1>
-      <nav>
-        <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">Products</a></li>
-          <li><a href="#">Cart</a></li>
+      <h2>Our Features</h2>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">📈</div>
+          <h3>Feature 1</h3>
+          <p>Description of feature 1</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔒</div>
+          <h3>Feature 2</h3>
+          <p>Description of feature 2</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">💡</div>
+          <h3>Feature 3</h3>
+          <p>Description of feature 3</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="about">
+    <div class="container">
+      <div class="about-content">
+        <div class="about-image">
+          <img src="https://via.placeholder.com/500x300" alt="About Us">
+        </div>
+        <div class="about-text">
+          <h2>About Us</h2>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam scelerisque ipsum ac feugiat luctus. Cras auctor mi in semper tempus.</p>
+          <p>Praesent eu tristique nisl. Donec vel ipsum eu quam feugiat suscipit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="pricing">
+    <div class="container">
+      <h2>Pricing Plans</h2>
+      <div class="pricing-grid">
+        <div class="pricing-plan">
+          <h3>Basic</h3>
+          <p class="price">$9.99<span>/month</span></p>
+          <ul class="plan-features">
+            <li>Feature 1</li>
+            <li>Feature 2</li>
+            <li>Feature 3</li>
+          </ul>
+          <button class="btn-secondary">Choose Plan</button>
+        </div>
+        <div class="pricing-plan popular">
+          <div class="popular-tag">Popular</div>
+          <h3>Pro</h3>
+          <p class="price">$19.99<span>/month</span></p>
+          <ul class="plan-features">
+            <li>All Basic Features</li>
+            <li>Feature 4</li>
+            <li>Feature 5</li>
+            <li>Feature 6</li>
+          </ul>
+          <button class="btn-primary">Choose Plan</button>
+        </div>
+        <div class="pricing-plan">
+          <h3>Enterprise</h3>
+          <p class="price">$29.99<span>/month</span></p>
+          <ul class="plan-features">
+            <li>All Pro Features</li>
+            <li>Feature 7</li>
+            <li>Feature 8</li>
+            <li>Feature 9</li>
+          </ul>
+          <button class="btn-secondary">Choose Plan</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="contact">
+    <div class="container">
+      <h2>Contact Us</h2>
+      <div class="contact-content">
+        <form class="contact-form">
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" required>
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" rows="5" required></textarea>
+          </div>
+          <button type="submit" class="btn-primary">Send Message</button>
+        </form>
+        <div class="contact-info">
+          <h3>Get in Touch</h3>
+          <p>Have questions? Reach out to us!</p>
+          <div class="info-item">
+            <span class="info-icon">📍</span>
+            <p>123 Street Name, City, Country</p>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📞</span>
+            <p>+1 234 5678 900</p>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">✉️</span>
+            <p>info@example.com</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <h3>${projectName}</h3>
+          <p>© ${new Date().getFullYear()} ${projectName}. All rights reserved.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-newsletter">
+          <h4>Subscribe to our Newsletter</h4>
+          <form class="newsletter-form">
+            <input type="email" placeholder="Your email address">
+            <button type="submit" class="btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>`;
+
+    // Add more cases for other project types...
+    case "blog":
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <nav class="navbar">
+        <h1 class="logo">${projectName}</h1>
+        <ul class="nav-links">
+          <li><a href="#" class="active">Home</a></li>
+          <li><a href="#">Categories</a></li>
           <li><a href="#">About</a></li>
+          <li><a href="#">Contact</a></li>
         </ul>
       </nav>
     </div>
   </header>
+
+  <section class="hero">
+    <div class="container">
+      <div class="featured-post">
+        <div class="post-image">
+          <img src="https://via.placeholder.com/1200x600" alt="Featured Post">
+        </div>
+        <div class="post-content">
+          <div class="post-meta">
+            <span class="category">Technology</span>
+            <span class="date">March 15, 2023</span>
+          </div>
+          <h2>The Future of Web Development</h2>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam at elit vel turpis varius porttitor et id risus.</p>
+          <a href="#" class="read-more">Read More</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="blog-posts">
+    <div class="container">
+      <h2 class="section-title">Latest Articles</h2>
+      
+      <div class="posts-grid">
+        <!-- Post 1 -->
+        <article class="post-card">
+          <div class="post-image">
+            <img src="https://via.placeholder.com/400x300" alt="Post 1">
+          </div>
+          <div class="post-content">
+            <div class="post-meta">
+              <span class="category">Design</span>
+              <span class="date">March 10, 2023</span>
+            </div>
+            <h3>10 UI Design Trends in 2023</h3>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel turpis varius porttitor et id risus.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </article>
+        
+        <!-- Post 2 -->
+        <article class="post-card">
+          <div class="post-image">
+            <img src="https://via.placeholder.com/400x300" alt="Post 2">
+          </div>
+          <div class="post-content">
+            <div class="post-meta">
+              <span class="category">Development</span>
+              <span class="date">March 5, 2023</span>
+            </div>
+            <h3>Getting Started with React</h3>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel turpis varius porttitor et id risus.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </article>
+        
+        <!-- Post 3 -->
+        <article class="post-card">
+          <div class="post-image">
+            <img src="https://via.placeholder.com/400x300" alt="Post 3">
+          </div>
+          <div class="post-content">
+            <div class="post-meta">
+              <span class="category">Business</span>
+              <span class="date">February 28, 2023</span>
+            </div>
+            <h3>Building a Successful Online Business</h3>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel turpis varius porttitor et id risus.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </article>
+        
+        <!-- Post 4 -->
+        <article class="post-card">
+          <div class="post-image">
+            <img src="https://via.placeholder.com/400x300" alt="Post 4">
+          </div>
+          <div class="post-content">
+            <div class="post-meta">
+              <span class="category">Productivity</span>
+              <span class="date">February 22, 2023</span>
+            </div>
+            <h3>5 Tips to Boost Your Productivity</h3>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel turpis varius porttitor et id risus.</p>
+            <a href="#" class="read-more">Read More</a>
+          </div>
+        </article>
+      </div>
+      
+      <div class="pagination">
+        <a href="#" class="active">1</a>
+        <a href="#">2</a>
+        <a href="#">3</a>
+        <a href="#" class="next">Next →</a>
+      </div>
+    </div>
+  </section>
   
+  <aside class="sidebar">
+    <div class="container">
+      <div class="sidebar-content">
+        <!-- About Widget -->
+        <div class="widget about-widget">
+          <h3 class="widget-title">About</h3>
+          <div class="about-content">
+            <img src="https://via.placeholder.com/150" alt="Author" class="author-image">
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam vel turpis varius porttitor et id risus.</p>
+          </div>
+        </div>
+        
+        <!-- Categories Widget -->
+        <div class="widget categories-widget">
+          <h3 class="widget-title">Categories</h3>
+          <ul class="categories-list">
+            <li><a href="#">Technology <span>(12)</span></a></li>
+            <li><a href="#">Design <span>(8)</span></a></li>
+            <li><a href="#">Development <span>(15)</span></a></li>
+            <li><a href="#">Business <span>(7)</span></a></li>
+            <li><a href="#">Productivity <span>(5)</span></a></li>
+          </ul>
+        </div>
+        
+        <!-- Popular Posts Widget -->
+        <div class="widget popular-posts-widget">
+          <h3 class="widget-title">Popular Posts</h3>
+          <ul class="popular-posts">
+            <li>
+              <div class="post-image">
+                <img src="https://via.placeholder.com/100x70" alt="Popular Post">
+              </div>
+              <div class="post-info">
+                <h4><a href="#">The Future of AI in Web Development</a></h4>
+                <span class="date">March 1, 2023</span>
+              </div>
+            </li>
+            <li>
+              <div class="post-image">
+                <img src="https://via.placeholder.com/100x70" alt="Popular Post">
+              </div>
+              <div class="post-info">
+                <h4><a href="#">How to Optimize Your Website Performance</a></h4>
+                <span class="date">February 15, 2023</span>
+              </div>
+            </li>
+            <li>
+              <div class="post-image">
+                <img src="https://via.placeholder.com/100x70" alt="Popular Post">
+              </div>
+              <div class="post-info">
+                <h4><a href="#">10 Essential Tools for Every Developer</a></h4>
+                <span class="date">February 10, 2023</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Newsletter Widget -->
+        <div class="widget newsletter-widget">
+          <h3 class="widget-title">Newsletter</h3>
+          <p>Subscribe to our newsletter and get the latest updates straight to your inbox.</p>
+          <form class="newsletter-form">
+            <input type="email" placeholder="Your email address">
+            <button type="submit" class="btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <h3>${projectName}</h3>
+          <p>© ${new Date().getFullYear()} ${projectName}. All rights reserved.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#">Home</a></li>
+            <li><a href="#">Categories</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-social">
+          <h4>Follow Us</h4>
+          <div class="social-links">
+            <a href="#" class="social-link">Facebook</a>
+            <a href="#" class="social-link">Twitter</a>
+            <a href="#" class="social-link">Instagram</a>
+            <a href="#" class="social-link">LinkedIn</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>`;
+    
+    default:
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <nav class="navbar">
+        <h1 class="logo">${projectName}</h1>
+        <ul class="nav-links">
+          <li><a href="#" class="active">Home</a></li>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Services</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
   <main>
     <section class="hero">
       <div class="container">
-        <h2>Welcome to our store</h2>
-        <p>${req.description || "Find the best products for your needs"}</p>
+        <h2>Welcome to ${projectName}</h2>
+        <p>This is a sample website generated by ThynkAI</p>
+        <button class="btn-primary">Learn More</button>
       </div>
     </section>
-    
-    <section class="products">
-      <div class="container">
-        <h2>Featured Products</h2>
-        <div class="product-grid" id="product-grid">
-          <!-- Products will be loaded here by JavaScript -->
-        </div>
-      </div>
-    </section>
-    
+
     <section class="features">
       <div class="container">
         <h2>Our Features</h2>
-        <div class="feature-grid">
-          ${req.features.map(feature => `
-            <div class="feature-card">
-              <h3>${feature}</h3>
-              <p>High-quality feature implementation</p>
-            </div>
-          `).join('')}
+        <div class="features-grid">
+          <div class="feature">
+            <h3>Feature 1</h3>
+            <p>Description of feature 1</p>
+          </div>
+          <div class="feature">
+            <h3>Feature 2</h3>
+            <p>Description of feature 2</p>
+          </div>
+          <div class="feature">
+            <h3>Feature 3</h3>
+            <p>Description of feature 3</p>
+          </div>
         </div>
       </div>
     </section>
   </main>
-  
-  <footer>
+
+  <footer class="footer">
     <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${req.projectName || "E-commerce Store"}. All rights reserved.</p>
+      <p>&copy; ${new Date().getFullYear()} ${projectName}. All rights reserved.</p>
     </div>
   </footer>
-  
+
   <script src="script.js"></script>
 </body>
 </html>`;
+  }
 };
 
-const generatePortfolioHTML = (req: ProjectRequirement) => {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${req.projectName || "Portfolio"}</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <header>
-    <div class="container">
-      <h1>${req.projectName || "My Portfolio"}</h1>
-      <nav>
-        <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">Projects</a></li>
-          <li><a href="#">About</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-  
-  <main>
-    <section class="hero">
-      <div class="container">
-        <h2>Hi, I'm a Developer</h2>
-        <p>${req.description || "Welcome to my portfolio website"}</p>
-      </div>
-    </section>
-    
-    <section class="projects">
-      <div class="container">
-        <h2>My Projects</h2>
-        <div class="project-grid" id="project-grid">
-          <!-- Projects will be loaded here by JavaScript -->
-        </div>
-      </div>
-    </section>
-    
-    <section class="skills">
-      <div class="container">
-        <h2>My Skills</h2>
-        <div class="skills-grid">
-          ${req.techStack.map(tech => `
-            <div class="skill-card">
-              <h3>${tech}</h3>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </section>
-  </main>
-  
-  <footer>
-    <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${req.projectName || "My Portfolio"}. All rights reserved.</p>
-    </div>
-  </footer>
-  
-  <script src="script.js"></script>
-</body>
-</html>`;
+// Generate AI HTML based on prompt
+const generateAIHtml = (prompt: string, requirements: ProjectRequirement): string => {
+  // For simplicity, we're using the same HTML generation
+  return generateHtml(requirements);
 };
 
-const generateBlogHTML = (req: ProjectRequirement) => {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${req.projectName || "Blog"}</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <header>
-    <div class="container">
-      <h1>${req.projectName || "My Blog"}</h1>
-      <nav>
-        <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">Articles</a></li>
-          <li><a href="#">Categories</a></li>
-          <li><a href="#">About</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-  
-  <main>
-    <section class="hero">
-      <div class="container">
-        <h2>Welcome to my Blog</h2>
-        <p>${req.description || "Read my latest articles and thoughts"}</p>
-      </div>
-    </section>
-    
-    <section class="articles">
-      <div class="container">
-        <h2>Recent Articles</h2>
-        <div class="article-grid" id="article-grid">
-          <!-- Articles will be loaded here by JavaScript -->
-        </div>
-      </div>
-    </section>
-    
-    <section class="features">
-      <div class="container">
-        <h2>Blog Features</h2>
-        <div class="feature-grid">
-          ${req.features.map(feature => `
-            <div class="feature-card">
-              <h3>${feature}</h3>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </section>
-  </main>
-  
-  <footer>
-    <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${req.projectName || "My Blog"}. All rights reserved.</p>
-    </div>
-  </footer>
-  
-  <script src="script.js"></script>
-</body>
-</html>`;
+// Generate AI CSS based on prompt
+const generateAICss = (prompt: string, requirements: ProjectRequirement): string => {
+  // For simplicity, we're using the CSS generation service
+  return generateProjectCss(requirements);
 };
 
-const generateDashboardHTML = (req: ProjectRequirement) => {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${req.projectName || "Dashboard"}</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="dashboard-layout">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <h1>${req.projectName || "Dashboard"}</h1>
-      </div>
-      <nav class="sidebar-nav">
-        <ul>
-          <li><a href="#" class="active">Dashboard</a></li>
-          <li><a href="#">Analytics</a></li>
-          <li><a href="#">Reports</a></li>
-          <li><a href="#">Settings</a></li>
-        </ul>
-      </nav>
-    </aside>
-    
-    <main class="main-content">
-      <header class="dash-header">
-        <div class="header-search">
-          <input type="search" placeholder="Search...">
-        </div>
-        <div class="header-user">
-          <span>Admin User</span>
-        </div>
-      </header>
+// Generate JS based on project type and features
+const generateJs = (requirements: ProjectRequirement): string => {
+  const { features = [] } = requirements;
+  
+  let js = `// Main JavaScript file
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('${requirements.projectName} - DOM fully loaded and parsed');
+  
+  // Initialize the application
+  initApp();
+});
+
+// Initialize the application
+function initApp() {
+  // Add event listeners
+  addEventListeners();
+  
+  // Other initialization code
+  ${features.includes("animations") ? "initAnimations();" : ""}
+  ${features.includes("darkMode") ? "initDarkMode();" : ""}
+}
+
+// Add event listeners to elements
+function addEventListeners() {
+  // Get navigation links
+  const navLinks = document.querySelectorAll('.nav-links a');
+  
+  // Add click event listener to each link
+  navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      // Remove active class from all links
+      navLinks.forEach(item => item.classList.remove('active'));
       
-      <div class="dashboard-content">
-        <section class="stats-cards">
-          <div class="stat-card">
-            <h3>Total Users</h3>
-            <p class="stat">1,254</p>
-          </div>
-          <div class="stat-card">
-            <h3>Revenue</h3>
-            <p class="stat">$45,455</p>
-          </div>
-          <div class="stat-card">
-            <h3>Orders</h3>
-            <p class="stat">334</p>
-          </div>
-          <div class="stat-card">
-            <h3>Conversion</h3>
-            <p class="stat">5.2%</p>
-          </div>
-        </section>
-        
-        <section class="charts">
-          <div class="chart-container">
-            <h3>Sales Analytics</h3>
-            <div class="chart" id="sales-chart">
-              <!-- Chart will be rendered by JavaScript -->
-              <p>Chart placeholder</p>
-            </div>
-          </div>
-        </section>
-        
-        <section class="activity">
-          <h3>Recent Activity</h3>
-          <div class="activity-list" id="activity-list">
-            <!-- Activity items will be loaded by JavaScript -->
-          </div>
-        </section>
-      </div>
-    </main>
-  </div>
-  
-  <script src="script.js"></script>
-</body>
-</html>`;
-};
-
-const generateLandingPageHTML = (req: ProjectRequirement) => {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${req.projectName || "Landing Page"}</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <header>
-    <div class="container">
-      <h1>${req.projectName || "Company Name"}</h1>
-      <nav>
-        <ul>
-          <li><a href="#">Home</a></li>
-          <li><a href="#">Features</a></li>
-          <li><a href="#">Pricing</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </nav>
-    </div>
-  </header>
-  
-  <main>
-    <section class="hero">
-      <div class="container">
-        <h2>${req.projectName || "Welcome to Our Site"}</h2>
-        <p>${req.description || "The best solution for your needs"}</p>
-        <button class="btn">Get Started</button>
-      </div>
-    </section>
-    
-    <section class="features">
-      <div class="container">
-        <h2>Key Features</h2>
-        <div class="feature-grid">
-          ${req.features.map((feature, index) => `
-            <div class="feature-card">
-              <h3>${feature}</h3>
-              <p>Feature ${index + 1} description goes here.</p>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </section>
-    
-    <section class="cta">
-      <div class="container">
-        <h2>Ready to Get Started?</h2>
-        <p>Join thousands of satisfied customers today</p>
-        <button class="btn">Sign Up Now</button>
-      </div>
-    </section>
-  </main>
-  
-  <footer>
-    <div class="container">
-      <p>&copy; ${new Date().getFullYear()} ${req.projectName || "Company Name"}. All rights reserved.</p>
-    </div>
-  </footer>
-  
-  <script src="script.js"></script>
-</body>
-</html>`;
-};
-
-// JavaScript generators for each project type
-const generateEcommerceJS = (req: ProjectRequirement) => {
-  return `// E-commerce store JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-  // Sample product data
-  const products = [
-    {
-      id: 1,
-      name: 'Premium Watch',
-      price: 199.99,
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30',
-      rating: 4
-    },
-    {
-      id: 2,
-      name: 'Wireless Headphones',
-      price: 149.99,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e',
-      rating: 5
-    },
-    {
-      id: 3,
-      name: 'Polaroid Camera',
-      price: 89.99,
-      image: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f',
-      rating: 4
-    },
-    {
-      id: 4,
-      name: 'Stylish Sunglasses',
-      price: 79.99,
-      image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f',
-      rating: 4
-    }
-  ];
-  
-  // Render products
-  const productGrid = document.getElementById('product-grid');
-  if (productGrid) {
-    products.forEach(product => {
-      const productElement = document.createElement('div');
-      productElement.className = 'product-card';
-      productElement.innerHTML = \`
-        <div class="product-image">
-          <img src="\${product.image}" alt="\${product.name}">
-        </div>
-        <div class="product-info">
-          <h3>\${product.name}</h3>
-          <p class="product-price">$\${product.price.toFixed(2)}</p>
-          <div class="product-rating">
-            <span>\${Array(5).fill('★').map((star, i) => i < product.rating ? star : '☆').join('')}</span>
-          </div>
-          <button class="btn" data-id="\${product.id}">Add to Cart</button>
-        </div>
-      \`;
-      productGrid.appendChild(productElement);
-    });
-    
-    // Add event listeners for add to cart buttons
-    const addToCartButtons = document.querySelectorAll('[data-id]');
-    addToCartButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        const productId = this.getAttribute('data-id');
-        console.log('Added product to cart:', productId);
-        alert('Product added to cart!');
-      });
-    });
-  }
-});`;
-};
-
-const generatePortfolioJS = (req: ProjectRequirement) => {
-  return `// Portfolio JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-  // Sample project data
-  const projects = [
-    {
-      id: 1,
-      name: 'E-commerce Website',
-      description: 'A fully responsive e-commerce platform built with modern technologies.',
-      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c',
-      technologies: ['HTML', 'CSS', 'JavaScript']
-    },
-    {
-      id: 2,
-      name: 'Dashboard Application',
-      description: 'An interactive dashboard for data visualization.',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f',
-      technologies: ['React', 'Chart.js', 'Tailwind CSS']
-    },
-    {
-      id: 3,
-      name: 'Mobile App',
-      description: 'A cross-platform mobile application for productivity.',
-      image: 'https://images.unsplash.com/photo-1551650975-87deedd944c3',
-      technologies: ['React Native', 'Firebase', 'Redux']
-    }
-  ];
-  
-  // Render projects
-  const projectGrid = document.getElementById('project-grid');
-  if (projectGrid) {
-    projects.forEach(project => {
-      const projectElement = document.createElement('div');
-      projectElement.className = 'project-card';
-      projectElement.innerHTML = \`
-        <div class="project-image">
-          <img src="\${project.image}" alt="\${project.name}">
-        </div>
-        <div class="project-info">
-          <h3>\${project.name}</h3>
-          <p>\${project.description}</p>
-          <div class="project-tech">
-            \${project.technologies.map(tech => \`<span class="tech-tag">\${tech}</span>\`).join('')}
-          </div>
-          <a href="#" class="btn" data-id="\${project.id}">View Project</a>
-        </div>
-      \`;
-      projectGrid.appendChild(projectElement);
-    });
-    
-    // Add event listeners for project links
-    const projectLinks = document.querySelectorAll('[data-id]');
-    projectLinks.forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const projectId = this.getAttribute('data-id');
-        console.log('Viewing project:', projectId);
-        alert('Project details would open here');
-      });
-    });
-  }
-});`;
-};
-
-const generateBlogJS = (req: ProjectRequirement) => {
-  return `// Blog JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-  // Sample article data
-  const articles = [
-    {
-      id: 1,
-      title: 'Getting Started with Web Development',
-      excerpt: 'Learn the basics of HTML, CSS, and JavaScript to start your web development journey.',
-      image: 'https://images.unsplash.com/photo-1517180102446-f3ece451e9d8',
-      date: '2025-04-01',
-      readTime: 5
-    },
-    {
-      id: 2,
-      title: 'The Future of AI in Web Design',
-      excerpt: 'Exploring how artificial intelligence is changing the landscape of web design and development.',
-      image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e',
-      date: '2025-03-25',
-      readTime: 8
-    },
-    {
-      id: 3,
-      title: 'Responsive Design Best Practices',
-      excerpt: 'Tips and tricks for creating websites that look great on all devices.',
-      image: 'https://images.unsplash.com/photo-1508830524289-0adcbe822b40',
-      date: '2025-03-18',
-      readTime: 6
-    }
-  ];
-  
-  // Render articles
-  const articleGrid = document.getElementById('article-grid');
-  if (articleGrid) {
-    articles.forEach(article => {
-      const articleElement = document.createElement('div');
-      articleElement.className = 'article-card';
-      articleElement.innerHTML = \`
-        <div class="article-image">
-          <img src="\${article.image}" alt="\${article.title}">
-        </div>
-        <div class="article-info">
-          <div class="article-meta">
-            <span>\${article.date}</span>
-            <span>\${article.readTime} min read</span>
-          </div>
-          <h3>\${article.title}</h3>
-          <p>\${article.excerpt}</p>
-          <a href="#" class="btn" data-id="\${article.id}">Read More</a>
-        </div>
-      \`;
-      articleGrid.appendChild(articleElement);
-    });
-    
-    // Add event listeners for article links
-    const articleLinks = document.querySelectorAll('[data-id]');
-    articleLinks.forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const articleId = this.getAttribute('data-id');
-        console.log('Reading article:', articleId);
-        alert('Article content would open here');
-      });
-    });
-  }
-});`;
-};
-
-const generateDashboardJS = (req: ProjectRequirement) => {
-  return `// Dashboard JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-  // Sample activity data
-  const activityItems = [
-    { user: 'John Doe', action: 'logged in', time: '5 minutes ago' },
-    { user: 'Jane Smith', action: 'purchased Product XYZ', time: '10 minutes ago' },
-    { user: 'Robert Johnson', action: 'updated their profile', time: '25 minutes ago' },
-    { user: 'Emily Davis', action: 'submitted a support ticket', time: '1 hour ago' },
-    { user: 'Michael Wilson', action: 'left a product review', time: '2 hours ago' }
-  ];
-  
-  // Render activity items
-  const activityList = document.getElementById('activity-list');
-  if (activityList) {
-    activityItems.forEach(item => {
-      const activityElement = document.createElement('div');
-      activityElement.className = 'activity-item';
-      activityElement.innerHTML = \`
-        <div class="activity-content">
-          <strong>\${item.user}</strong> \${item.action}
-          <span class="activity-time">\${item.time}</span>
-        </div>
-      \`;
-      activityList.appendChild(activityElement);
-    });
-  }
-  
-  // Simulate a simple chart
-  const salesChart = document.getElementById('sales-chart');
-  if (salesChart) {
-    salesChart.innerHTML = '<div class="mock-chart">This is where an actual chart would be rendered with a charting library like Chart.js</div>';
-    
-    console.log('Dashboard loaded successfully');
-    console.log('In a real application, you would use a library like Chart.js to render actual charts with data');
-  }
-});`;
-};
-
-const generateLandingPageJS = (req: ProjectRequirement) => {
-  return `// Landing Page JavaScript
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Landing page loaded');
-  
-  // Simple scroll animations
-  const animateOnScroll = function() {
-    const elements = document.querySelectorAll('.feature-card');
-    elements.forEach(element => {
-      const position = element.getBoundingClientRect();
-      
-      // If element is in viewport
-      if(position.top >= 0 && position.bottom <= window.innerHeight) {
-        element.classList.add('animate');
-      }
-    });
-  };
-  
-  // Add event listeners for buttons
-  const ctaButtons = document.querySelectorAll('.btn');
-  ctaButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      console.log('Button clicked:', this.textContent);
-      alert('Thank you for your interest! This would redirect to a signup form in a real application.');
+      // Add active class to clicked link
+      this.classList.add('active');
     });
   });
   
-  // Listen for scroll events
-  window.addEventListener('scroll', animateOnScroll);
+  // Form submission handling
+  const forms = document.querySelectorAll('form');
+  forms.forEach(form => {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      console.log('Form submitted');
+      form.reset();
+      alert('Thank you for your submission!');
+    });
+  });
+}`;
+
+  // Add feature-specific JS
+  if (features.includes("animations")) {
+    js += `
+
+// Initialize animations
+function initAnimations() {
+  // Set up intersection observer to trigger animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate');
+      }
+    });
+  }, { threshold: 0.1 });
   
-  // Run once on load
-  animateOnScroll();
-});`;
+  // Observe all elements with animation class
+  document.querySelectorAll('.animated').forEach(element => {
+    observer.observe(element);
+  });
+}`;
+  }
+
+  if (features.includes("darkMode")) {
+    js += `
+
+// Initialize dark mode
+function initDarkMode() {
+  const darkModeToggle = document.querySelector('.dark-mode-toggle');
+  const body = document.body;
+  
+  // Check for saved theme preference or use device preference
+  const savedTheme = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  
+  if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+    body.classList.add('dark-mode');
+    if (darkModeToggle) {
+      const toggleInput = darkModeToggle.querySelector('input');
+      if (toggleInput) toggleInput.checked = true;
+    }
+  }
+  
+  // Add event listener to toggle if it exists
+  if (darkModeToggle) {
+    darkModeToggle.addEventListener('click', function() {
+      body.classList.toggle('dark-mode');
+      const isDark = body.classList.contains('dark-mode');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    });
+  }
+}`;
+  }
+
+  return js;
+};
+
+// Generate AI JS based on prompt
+const generateAIJs = (prompt: string, requirements: ProjectRequirement): string => {
+  // For simplicity, we're using the same JS generation
+  return generateJs(requirements);
+};
+
+export default {
+  generateProject,
+  generateWithAI
 };

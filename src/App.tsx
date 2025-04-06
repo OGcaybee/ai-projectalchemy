@@ -14,6 +14,7 @@ import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
 import Generate from "./pages/Generate";
 import Pricing from "./pages/Pricing";
+import PaymentCheckout from "./pages/PaymentCheckout";
 import Docs from "./pages/Docs";
 import ExpertRequest from "./pages/ExpertRequest";
 import Navbar from "./components/Navbar";
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/templates/:id" element={<TemplateDetail />} />
                 <Route path="/generate" element={<Generate />} />
                 <Route path="/pricing" element={<Pricing />} />
+                <Route path="/payment-checkout" element={<PaymentCheckout />} />
                 <Route path="/docs" element={<Docs />} />
                 <Route path="/create-by-experts" element={<ExpertRequest />} />
                 <Route path="*" element={<NotFound />} />
