@@ -45,19 +45,19 @@
   }
 
   .dark {
-    --background: 0 0% 5%;
+    --background: 0 0% 0%;
     --foreground: 210 40% 98%;
 
-    --card: 0 0% 10%;
+    --card: 0 0% 5%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 10%;
+    --popover: 0 0% 5%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 210 40% 98%;
     --primary-foreground: 0 0% 5%;
 
-    --secondary: 0 0% 15%;
+    --secondary: 0 0% 10%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 0 0% 15%;
@@ -73,7 +73,7 @@
     --input: 0 0% 20%;
     --ring: 210 40% 98%;
     
-    --sidebar-background: 0 0% 5%;
+    --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 210 40% 98%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -112,11 +112,11 @@
 
 /* Custom gradient backgrounds */
 .thynk-gradient-bg-light {
-  @apply bg-gradient-to-br from-white via-white to-white;
+  @apply bg-white;
 }
 
 .thynk-gradient-bg-dark {
-  @apply bg-gradient-to-br from-[#000000] via-[#121212] to-[#1a1a1a];
+  @apply bg-black;
 }
 
 .thynk-card {
