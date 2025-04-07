@@ -12,7 +12,7 @@ const Hero = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground animate-fade-in">
-            <span className="text-foreground">
+            <span className="bg-gradient-to-r from-purple-600 via-pink-500 to-teal-500 text-transparent bg-clip-text">
               Build Complete Projects
             </span>{" "}
             Instantly

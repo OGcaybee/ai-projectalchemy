@@ -25,8 +25,8 @@ const sampleUsers: User[] = [
   {
     id: '2',
     name: 'Demo User',
-    email: 'demo@thynkai.com',
-    password: 'demo123',
+    email: 'demo@example.com',
+    password: 'password123',
     credits: 10,
     isPro: false
   }
@@ -90,6 +90,10 @@ class AuthService {
   login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 800));
+    
+    if (!credentials || !credentials.email || !credentials.password) {
+      return { success: false, message: 'Missing email or password' };
+    }
     
     const { email, password } = credentials;
     const user = this.users.find(u => u.email.toLowerCase() === email.toLowerCase());

@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import authService, { LoginCredentials, RegisterData } from "@/services/authService";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 // Define the shape of user object
 export interface User {
@@ -10,7 +10,7 @@ export interface User {
   email: string;
   credits: number;
   isPro: boolean;
-  isSuperUser?: boolean; // Added superuser flag
+  isSuperUser?: boolean;
 }
 
 // Define the shape of auth context
@@ -20,7 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>; // Add this for compatibility
+  signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateCredits: (newCredits: number) => void;
   upgradeToPro: () => void;
@@ -33,7 +33,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => false,
   register: async () => false,
-  signup: async () => false, // Add this for compatibility
+  signup: async () => false,
   logout: () => {},
   updateCredits: () => {},
   upgradeToPro: () => {},
@@ -66,26 +66,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.success && response.user) {
         setUser(response.user as User);
         localStorage.setItem("thynkai_token", response.token!);
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${response.user.name}!`,
-        });
         return true;
       } else {
-        toast({
-          variant: "destructive",
-          title: "Login failed",
-          description: response.message || "Invalid credentials",
-        });
+        toast.error(response.message || "Invalid credentials");
         return false;
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: "An unexpected error occurred. Please try again.",
-      });
+      toast.error("An unexpected error occurred. Please try again.");
       return false;
     } finally {
       setIsLoading(false);
@@ -101,26 +89,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.success && response.user) {
         setUser(response.user as User);
         localStorage.setItem("thynkai_token", response.token!);
-        toast({
-          title: "Registration successful",
-          description: `Welcome to ThynkAI, ${response.user.name}!`,
-        });
+        toast.success(`Welcome to ThynkAI, ${response.user.name}!`);
         return true;
       } else {
-        toast({
-          variant: "destructive",
-          title: "Registration failed",
-          description: response.message || "Could not create account",
-        });
+        toast.error(response.message || "Could not create account");
         return false;
       }
     } catch (error) {
       console.error("Registration error:", error);
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: "An unexpected error occurred. Please try again.",
-      });
+      toast.error("An unexpected error occurred. Please try again.");
       return false;
     } finally {
       setIsLoading(false);
@@ -136,10 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     localStorage.removeItem("thynkai_token");
     setUser(null);
-    toast({
-      title: "Logout successful",
-      description: "You have been logged out.",
-    });
+    toast.success("You have been logged out.");
   };
 
   // Update user credits
@@ -155,10 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       authService.upgradeUserToPro(user.id);
       setUser({ ...user, isPro: true });
-      toast({
-        title: "Upgrade successful",
-        description: "Your account has been upgraded to PRO!",
-      });
+      toast.success("Your account has been upgraded to PRO!");
     }
   };
 
@@ -168,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     login,
     register,
-    signup, // Add this for compatibility
+    signup,
     logout,
     updateCredits,
     upgradeToPro,

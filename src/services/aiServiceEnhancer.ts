@@ -1,25 +1,21 @@
 
-import { enhanceProjectContent } from './aiProjectGenerator';
+import { enhanceContent as enhanceProjectWithAI } from './aiProjectGenerator';
 import { optimizeContent } from './contentOptimizer';
 
 /**
  * Enhances the project content with additional features
  * based on the user's prompt
  */
-export const enhanceProjectContent = async (
+export const enhanceContent = async (
   prompt: string, 
   initialContent: { html: string; css: string; js: string }
 ) => {
   try {
     // First, enhance the content with AI-generated improvements
-    const enhancedContent = await import('./aiProjectGenerator').then(
-      module => module.enhanceProjectContent(prompt, initialContent)
-    );
+    const enhancedContent = await enhanceProjectWithAI(prompt, initialContent);
     
     // Then optimize the enhanced content for performance and quality
-    const optimizedContent = await import('./contentOptimizer').then(
-      module => module.optimizeContent(enhancedContent)
-    );
+    const optimizedContent = await optimizeContent(enhancedContent);
     
     return optimizedContent;
   } catch (error) {
@@ -30,5 +26,5 @@ export const enhanceProjectContent = async (
 };
 
 export default {
-  enhanceProjectContent
+  enhanceContent
 };
