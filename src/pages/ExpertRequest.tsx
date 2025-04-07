@@ -17,10 +17,8 @@ const ExpertRequest: React.FC<ExpertRequestProps> = () => {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Expert Project Request</h1>
           <SubscriptionPrompt 
-            title="Login Required"
-            description="Please login to request custom projects built by our expert team."
-            buttonText="Login Now"
-            buttonLink="/login"
+            open={true}
+            onClose={() => {}}
           />
         </div>
       </div>
@@ -33,11 +31,9 @@ const ExpertRequest: React.FC<ExpertRequestProps> = () => {
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">Expert Project Request</h1>
-          <SubscriptionPrompt 
-            title="Pro Plan Required"
-            description="Expert project creation is available for Pro plan subscribers."
-            buttonText="Upgrade to Pro"
-            buttonLink="/pricing"
+          <SubscriptionPrompt
+            open={true}
+            onClose={() => {}}
           />
         </div>
       </div>

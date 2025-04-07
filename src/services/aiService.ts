@@ -1,5 +1,6 @@
+
 import { generateProjectCss } from "./cssGenerationService";
-import { enhanceProjectContent } from "./aiServiceEnhancer";
+import { enhanceContent } from "./aiServiceEnhancer";
 
 export interface ProjectRequirement {
   projectName: string;
@@ -11,7 +12,7 @@ export interface ProjectRequirement {
   techStack: string[];
 }
 
-interface GeneratedProject {
+export interface GeneratedProject {
   id: string;
   name: string;
   description: string;

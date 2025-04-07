@@ -1,5 +1,5 @@
 
-import { enhanceContent as enhanceProjectWithAI } from './aiProjectGenerator';
+import { enhanceProjectContent } from './aiProjectGenerator';
 import { optimizeContent } from './contentOptimizer';
 
 /**
@@ -12,7 +12,7 @@ export const enhanceContent = async (
 ) => {
   try {
     // First, enhance the content with AI-generated improvements
-    const enhancedContent = await enhanceProjectWithAI(prompt, initialContent);
+    const enhancedContent = await enhanceProjectContent(prompt, initialContent);
     
     // Then optimize the enhanced content for performance and quality
     const optimizedContent = await optimizeContent(enhancedContent);
