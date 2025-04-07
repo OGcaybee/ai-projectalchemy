@@ -41,7 +41,7 @@ async function loadModel() {
         "text-generation",
         "TinyLlama/TinyLlama-1.1B-Chat-v1.0", // Using a small open-source LLM
         { 
-          quantized: true, // Use quantization for smaller model size and faster inference
+          // Remove the quantized property as it's not recognized in the type definition
           max_new_tokens: 2048 // Maximum generated tokens
         }
       );
