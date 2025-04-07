@@ -33,9 +33,10 @@ const Login = () => {
     setLoading(true);
     
     try {
-      await login({ email, password });
-      toast.success("Login successful");
-      navigate("/");
+      const success = await login({ email, password });
+      if (success) {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Login error:", error);
       toast.error("Login failed. Please check your credentials.");

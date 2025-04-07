@@ -61,9 +61,9 @@ const Navbar = () => {
           {/* Auth Buttons and Theme Toggle */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            {isAuthenticated ? (
+            {isAuthenticated && user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-foreground font-bold">Hi, {user?.name}</span>
+                <span className="text-sm text-foreground font-bold">Hi, {user.name}</span>
                 <Button
                   variant="outline"
                   onClick={handleLogout}
@@ -73,21 +73,14 @@ const Navbar = () => {
                 </Button>
               </div>
             ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost" className="text-sm text-foreground hover:text-primary">
-                    Login
-                  </Button>
-                </Link>
-                <Link to="/signup">
-                  <Button
-                    variant="default"
-                    className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
-                  >
-                    Signup
-                  </Button>
-                </Link>
-              </>
+              <Link to="/login">
+                <Button
+                  variant="default"
+                  className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Login/Signup
+                </Button>
+              </Link>
             )}
           </div>
 
@@ -122,9 +115,9 @@ const Navbar = () => {
                     </Link>
                   ))}
                   <div className="pt-4 border-t border-border">
-                    {isAuthenticated ? (
+                    {isAuthenticated && user ? (
                       <div className="flex flex-col space-y-4">
-                        <span className="text-sm text-foreground font-bold">Hi, {user?.name}</span>
+                        <span className="text-sm text-foreground font-bold">Hi, {user.name}</span>
                         <Button
                           variant="outline"
                           onClick={() => {
@@ -138,21 +131,14 @@ const Navbar = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex flex-col space-y-4">
-                        <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                          <Button variant="outline" className="w-full text-foreground hover:text-primary">
-                            Login
-                          </Button>
-                        </Link>
-                        <Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>
-                          <Button
-                            variant="default"
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                          >
-                            Signup
-                          </Button>
-                        </Link>
-                      </div>
+                      <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Button
+                          variant="default"
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          Login/Signup
+                        </Button>
+                      </Link>
                     )}
                   </div>
                 </div>

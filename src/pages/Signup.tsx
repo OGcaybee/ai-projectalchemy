@@ -61,9 +61,9 @@ const Signup = () => {
 
   return (
     <>
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-white dark:bg-black">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100">
         <div className="absolute inset-0 z-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-br from-white to-white dark:from-black dark:to-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#9b87f5] to-[#D946EF]" />
           <div 
             className="absolute inset-0 bg-center bg-cover" 
             style={{ backgroundImage: `url(${backgroundImages.signup})` }}
@@ -124,7 +124,7 @@ const Signup = () => {
               </div>
               <Button
                 type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full bg-gradient-to-r from-[#9b87f5] to-[#D946EF] hover:opacity-90 text-white"
                 disabled={loading}
               >
                 {loading ? "Creating account..." : "Create account"}

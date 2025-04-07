@@ -19,6 +19,10 @@ const ExpertRequest: React.FC<ExpertRequestProps> = () => {
           <SubscriptionPrompt 
             open={true}
             onClose={() => {}}
+            title="Login Required"
+            description="Please login to request custom projects built by our expert team."
+            buttonText="Login Now"
+            buttonLink="/login"
           />
         </div>
       </div>
@@ -34,6 +38,10 @@ const ExpertRequest: React.FC<ExpertRequestProps> = () => {
           <SubscriptionPrompt
             open={true}
             onClose={() => {}}
+            title="Pro Plan Required"
+            description="Expert project creation is available for Pro plan subscribers."
+            buttonText="Upgrade to Pro"
+            buttonLink="/pricing"
           />
         </div>
       </div>

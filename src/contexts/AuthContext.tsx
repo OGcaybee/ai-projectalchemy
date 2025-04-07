@@ -46,12 +46,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Check for existing session on mount
   useEffect(() => {
-    const initializeAuth = () => {
-      const currentUser = authService.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser as User);
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser as User);
+        }
+      } catch (error) {
+        console.error("Auth initialization error:", error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initializeAuth();
@@ -66,6 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (response.success && response.user) {
         setUser(response.user as User);
         localStorage.setItem("thynkai_token", response.token!);
+        toast.success(`Welcome back, ${response.user.name}!`);
         return true;
       } else {
         toast.error(response.message || "Invalid credentials");
