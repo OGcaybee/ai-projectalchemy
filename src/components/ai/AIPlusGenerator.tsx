@@ -9,8 +9,9 @@ import { Download, PlusCircle, Trash2, Code, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateProject, downloadProject } from "@/services/aiService";
-import { integrateWithGroq } from "@/services/templateService";
+import { integrateWithGroq, TECH_STACK_OPTIONS, generateCustomProject } from "@/services/templateService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const AIPlusGenerator = () => {
   const { isAuthenticated } = useAuth();
@@ -19,15 +20,27 @@ const AIPlusGenerator = () => {
   const [pages, setPages] = useState<{ name: string; path: string; description: string; }[]>([
     { name: "Home", path: "/", description: "Landing page with overview information" }
   ]);
-  const [techStack, setTechStack] = useState("react-tailwind-node-mongo");
+  const [selectedTechStacks, setSelectedTechStacks] = useState<string[]>(["react", "tailwind"]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState("blue");
 
-  const techStackOptions = [
-    { value: "react-tailwind-node-mongo", label: "React + Tailwind + Node.js/Express + MongoDB" },
-    { value: "html-css-js-flask-sqlite", label: "HTML/CSS/JS + Flask + SQLite" },
-    { value: "vue-django-postgres", label: "Vue.js + Django + PostgreSQL" },
-    { value: "react-firebase", label: "React + Firebase (Serverless)" }
+  const themeOptions = [
+    { value: "blue", label: "Blue" },
+    { value: "green", label: "Green" },
+    { value: "red", label: "Red" },
+    { value: "orange", label: "Orange" },
+    { value: "pink", label: "Pink" },
+    { value: "purple", label: "Purple" }
+  ];
+
+  const availableTechStacks = [
+    { value: "react", label: "React" },
+    { value: "vue", label: "Vue.js" },
+    { value: "alpine", label: "Alpine.js" },
+    { value: "typescript", label: "TypeScript" },
+    { value: "tailwind", label: "Tailwind CSS" },
+    { value: "node", label: "Node.js" }
   ];
 
   const handleAddPage = () => {
@@ -42,6 +55,16 @@ const AIPlusGenerator = () => {
 
   const handleRemovePage = (index: number) => {
     setPages(pages.filter((_, i) => i !== index));
+  };
+
+  const toggleTechStack = (value: string) => {
+    setSelectedTechStacks(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else {
+        return [...prev, value];
+      }
+    });
   };
 
   const handleSubmit = async () => {
@@ -70,28 +93,22 @@ const AIPlusGenerator = () => {
     setIsGenerating(true);
 
     try {
-      toast.info("Generating your project with AI. This may take a few moments...");
+      toast.info("Generating your project. This may take a few moments...");
 
-      // First, try to generate with Groq AI - this is the fast modern approach
       try {
-        // For now we're using a customized template approach while fully integrating with Groq
-        const groqTemplate = {
-          id: "ai-generated",
-          name: projectName,
-          description: projectDescription,
-          category: "Dashboard",
-          image: "",
-          techStack: techStackOptions.find(option => option.value === techStack)?.label.split(" + ") || ["React"],
-          popularity: 100,
-          customTheme: "blue"
-        };
+        // Use the local template generation with selected tech stacks
+        const downloadUrl = await generateCustomProject(
+          projectName, 
+          projectDescription,
+          selectedTechStacks,
+          selectedTheme
+        );
         
-        const downloadUrl = await integrateWithGroq(groqTemplate, projectDescription);
         setDownloadUrl(downloadUrl);
         toast.success("Project generated successfully!");
-      } catch (groqError) {
-        console.error("Groq generation failed:", groqError);
-        toast.warning("Advanced AI generation failed. Falling back to template-based generation...");
+      } catch (error) {
+        console.error("Custom generation failed:", error);
+        toast.warning("Custom generation failed. Falling back to template-based generation...");
         
         // Fallback to our basic project generator
         const project = await generateProject({
@@ -99,9 +116,9 @@ const AIPlusGenerator = () => {
           projectType: "Custom",
           description: projectDescription,
           features: pages.map(page => page.name),
-          techStack: techStackOptions.find(option => option.value === techStack)?.label.split(" + ") || ["React"],
+          techStack: selectedTechStacks,
           imageUrls: [],
-          themeColor: "blue"
+          themeColor: selectedTheme
         });
         
         const url = await downloadProject(project);
@@ -145,19 +162,40 @@ const AIPlusGenerator = () => {
         </div>
 
         <div>
-          <Label htmlFor="techStack">Technology Stack</Label>
-          <Select value={techStack} onValueChange={(value) => setTechStack(value)}>
+          <Label htmlFor="theme">Theme Color</Label>
+          <Select value={selectedTheme} onValueChange={(value) => setSelectedTheme(value)}>
             <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select technology stack" />
+              <SelectValue placeholder="Select theme color" />
             </SelectTrigger>
             <SelectContent>
-              {techStackOptions.map((option) => (
+              {themeOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="techStack">Technology Stack</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+            {availableTechStacks.map((tech) => (
+              <div key={tech.value} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={tech.value}
+                  checked={selectedTechStacks.includes(tech.value)}
+                  onCheckedChange={() => toggleTechStack(tech.value)}
+                />
+                <label 
+                  htmlFor={tech.value}
+                  className="text-sm font-medium leading-none cursor-pointer"
+                >
+                  {tech.label}
+                </label>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div>
