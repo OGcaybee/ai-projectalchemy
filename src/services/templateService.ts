@@ -1,7 +1,5 @@
-
 import { templateThumbnails, getTemplateThumbnail } from "@/assets/template-thumbnails";
 import JSZip from "jszip";
-import { toast } from "sonner";
 
 export type Template = {
   id: string;

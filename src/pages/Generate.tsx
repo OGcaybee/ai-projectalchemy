@@ -8,10 +8,10 @@ const Generate: React.FC = () => {
   const [activeTab, setActiveTab] = useState("templates");
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-white via-blue-50/50 to-purple-50/50 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10">
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-white via-blue-50/50 to-purple-50/50 dark:from-gray-950 dark:via-blue-900/10 dark:to-purple-900/10">
       <div className="container mx-auto px-4 py-10">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 text-center bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 text-transparent bg-clip-text">
             Generate Your Project
           </h1>
           <p className="text-muted-foreground text-center mb-8">
@@ -19,9 +19,9 @@ const Generate: React.FC = () => {
           </p>
 
           <div className="relative">
-            {/* Decorative elements */}
-            <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-300/20 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-300/20 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
+            {/* Decorative elements with dark mode adjustments */}
+            <div className="absolute -top-10 -left-10 w-40 h-40 bg-blue-300/20 dark:bg-blue-500/10 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
+            <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-300/20 dark:bg-purple-500/10 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
             
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
