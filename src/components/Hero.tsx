@@ -6,9 +6,13 @@ import { Link } from "react-router-dom";
 const Hero = () => {
   return (
     <section className="relative py-20 md:py-28 overflow-hidden">
-      {/* Gradient background */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-br from-white via-blue-50 to-purple-50"></div>
-
+      {/* Enhanced gradient background */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-br from-blue-50 via-purple-50 to-teal-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20"></div>
+      
+      {/* Decorative elements */}
+      <div className="absolute top-10 left-10 w-72 h-72 bg-blue-300/20 rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-purple-300/20 rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
+      
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground animate-fade-in">
@@ -25,12 +29,12 @@ const Hero = () => {
           </p>
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.2s" }}>
             <Link to="/generate">
-              <Button size="lg" className="bg-primary hover:opacity-90 shadow-lg shadow-gray-500/20 text-primary-foreground">
+              <Button size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90 shadow-lg shadow-purple-500/20 text-white border-0">
                 Start with Templates
               </Button>
             </Link>
             <Link to="/templates">
-              <Button size="lg" variant="outline" className="border-primary hover:border-primary/80 text-foreground">
+              <Button size="lg" variant="outline" className="border-primary hover:border-primary/80 text-foreground backdrop-blur-sm">
                 Browse Templates
               </Button>
             </Link>
