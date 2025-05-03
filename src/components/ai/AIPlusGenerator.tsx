@@ -9,7 +9,7 @@ import { Download, PlusCircle, Trash2, Code, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { generateProject, downloadProject } from "@/services/aiService";
-import { integrateWithGroq, TECH_STACK_OPTIONS, generateCustomProject } from "@/services/templateService";
+import { TECH_STACK_OPTIONS, downloadTemplate, generateCustomProject, integrateWithGroq } from "@/services/templateService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 

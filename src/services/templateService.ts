@@ -1,5 +1,5 @@
 
-import { GROQ_API_KEY } from './config';
+import { GROQ_API_KEY } from '@/config';
 import JSZip from "jszip";
 
 export type Template = {
@@ -31,6 +31,16 @@ const templateThumbnails = {
   personalPortfolio: "/template-thumbnails/personal-portfolio.jpg",
   default: "/template-thumbnails/default.jpg"
 };
+
+// Adding back the TECH_STACK_OPTIONS constant that AIPlusGenerator needs
+export const TECH_STACK_OPTIONS = [
+  { value: "react", label: "React" },
+  { value: "vue", label: "Vue.js" },
+  { value: "alpine", label: "Alpine.js" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "tailwind", label: "Tailwind CSS" },
+  { value: "node", label: "Node.js" }
+];
 
 export const getTemplateThumbnail = (category: string): string => {
   switch (category.toLowerCase()) {
@@ -663,6 +673,79 @@ function getThemeColors(theme?: string): { primary: string, secondary: string, a
       return { primary: '#7c3aed', secondary: '#6d28d9', accent: '#a78bfa' };
   }
 }
+
+// Adding back the functions needed by AIPlusGenerator.tsx
+export const integrateWithGroq = async (prompt: string): Promise<string> => {
+  // Simplified mock implementation
+  console.log("integrateWithGroq called with prompt:", prompt);
+  return "Mock integration response";
+};
+
+export const generateCustomProject = async (
+  projectName: string,
+  projectDescription: string,
+  selectedTechStacks: string[],
+  selectedTheme: string
+): Promise<string> => {
+  try {
+    // Mock implementation that creates a basic project using our template system
+    const themeColors = getThemeColors(selectedTheme);
+    
+    // Create a new JSZip instance
+    const zip = new JSZip();
+    
+    // Add basic project files
+    zip.file("index.html", `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: ${themeColors.primary};
+      --secondary: ${themeColors.secondary};
+      --accent: ${themeColors.accent};
+    }
+    .bg-primary { background-color: var(--primary); }
+    .text-primary { color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-4">${projectName}</h1>
+    <p class="mb-6">${projectDescription}</p>
+    <div class="bg-primary text-white p-4 rounded">
+      Generated with custom technology stack: ${selectedTechStacks.join(', ')}
+    </div>
+  </div>
+</body>
+</html>`);
+    
+    zip.file("README.md", `# ${projectName}
+
+${projectDescription}
+
+## Tech Stack
+
+${selectedTechStacks.map(tech => `- ${tech}`).join('\n')}
+
+## Getting Started
+
+1. Extract the ZIP file
+2. Open index.html in your browser to see the basic template
+3. Customize the template to fit your project needs
+`);
+    
+    // Generate blob and return URL
+    const blob = await zip.generateAsync({ type: "blob" });
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error("Error generating custom project:", error);
+    throw new Error("Failed to generate custom project");
+  }
+};
 
 // Enhanced download function that uses pre-created template content
 export const downloadTemplate = async (template: Template): Promise<string> => {
