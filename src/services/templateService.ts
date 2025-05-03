@@ -1,6 +1,7 @@
 
 import { templateThumbnails, getTemplateThumbnail } from "@/assets/template-thumbnails";
 import JSZip from "jszip";
+import { GROQ_API_KEY } from "@/config";
 
 export type Template = {
   id: string;
@@ -172,16 +173,6 @@ export const getTemplateById = async (id: string): Promise<Template | undefined>
   return templates.find(template => template.id === id);
 };
 
-// Define the tech stack options
-export const TECH_STACK_OPTIONS = [
-  "react", 
-  "vue", 
-  "alpine", 
-  "typescript", 
-  "tailwind", 
-  "node"
-];
-
 // Improved download function that fetches actual files from GitHub before creating a zip
 export const downloadTemplate = async (template: Template): Promise<string> => {
   try {
@@ -245,24 +236,175 @@ export const downloadTemplate = async (template: Template): Promise<string> => {
     // fall back to generating example files
     if (Object.keys(zip.files).length === 0) {
       // Create project files with the proper structure
-      let projectFiles: Record<string, string> = {};
-      
-      // Check if the template contains Alpine.js
-      if (template.techStack.includes("Alpine.js")) {
-        projectFiles = generateAlpineTemplate(template, themeColors);
-      } 
-      // Check if the template contains React
-      else if (template.techStack.includes("React")) {
-        projectFiles = generateReactTemplate(template, themeColors);
-      }
-      // Check if the template is Vue.js based
-      else if (template.techStack.includes("Vue.js")) {
-        projectFiles = generateVueTemplate(template, themeColors);
-      }
-      // Default HTML/CSS/JS template
-      else {
-        projectFiles = generateBasicTemplate(template, themeColors);
-      }
+      const projectFiles = {
+        // HTML entry point
+        "index.html": `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${template.name}</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script src="./src/main.js" type="module"></script>
+</body>
+</html>`,
+
+        // Main CSS file
+        "styles/main.css": `:root {
+  --primary-color: ${themeColors.primary};
+  --secondary-color: ${themeColors.secondary};
+  --accent-color: ${themeColors.accent};
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  line-height: 1.5;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color);
+}`,
+
+        // Main JS file
+        "src/main.js": `import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+import App from './App.js'
+
+createApp(App).mount('#root')`,
+
+        // App component
+        "src/App.js": `export default {
+  name: 'App',
+  data() {
+    return {
+      appName: '${template.name}',
+      description: '${template.description}',
+      features: [
+        'Responsive design',
+        'Modern UI components',
+        'Customizable themes',
+        'Easy to integrate',
+        'Well documented'
+      ]
+    }
+  },
+  template: \`
+    <div class="min-h-screen bg-gray-100">
+      <header class="bg-white shadow">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <h1 class="text-3xl font-bold text-gray-900" style="color: var(--primary-color)">{{ appName }}</h1>
+        </div>
+      </header>
+      <main>
+        <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div class="px-4 py-6 sm:px-0">
+            <div class="border-4 border-dashed border-gray-200 rounded-lg p-4">
+              <p class="text-lg text-center mb-4">{{ description }}</p>
+              
+              <div class="mt-8">
+                <h2 class="text-xl font-semibold mb-4" style="color: var(--secondary-color)">Features</h2>
+                <ul class="space-y-2">
+                  <li v-for="feature in features" class="flex items-start">
+                    <span class="mr-2" style="color: var(--accent-color)">✓</span>
+                    <span>{{ feature }}</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div class="mt-8 text-center">
+                <button class="btn-primary">
+                  Get Started
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <footer class="bg-white shadow mt-8 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p class="text-center text-gray-500">
+            Built with ${template.techStack.join(', ')}
+          </p>
+        </div>
+      </footer>
+    </div>
+  \`
+}`,
+
+        // README file
+        "README.md": `# ${template.name}
+
+${template.description}
+
+## About This Project
+
+This project was generated using the Thynk AI Template Customizer with the following configuration:
+
+- Template: ${template.name}
+- Theme: ${template.customTheme || 'Default'}
+- Tech Stack: ${template.techStack.join(', ')}
+
+## Getting Started
+
+1. Extract the ZIP file
+2. Open the folder in your favorite code editor
+3. For a quick preview, open the index.html file in your browser
+4. For development, it's recommended to set up a local server:
+   \`\`\`
+   npx serve
+   \`\`\`
+
+## Features
+
+- Responsive design for all device sizes
+- Modern UI components
+- Customizable theme colors
+- Easy to extend
+
+## Credits
+
+Original template by: ${template.author || 'Template Creator'}
+${template.githubUrl ? `GitHub: ${template.githubUrl}` : ''}
+
+## License
+
+MIT
+`,
+
+        // Package JSON (for reference)
+        "package.json": `{
+  "name": "${template.name.toLowerCase().replace(/\s+/g, '-')}",
+  "version": "1.0.0",
+  "description": "${template.description}",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve .",
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    ${generateDependencies(template.techStack)}
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "serve": "^14.0.0"
+  }
+}`
+      };
       
       // Add files to the zip
       Object.entries(projectFiles).forEach(([path, content]) => {
@@ -289,2887 +431,30 @@ export const downloadTemplate = async (template: Template): Promise<string> => {
   }
 };
 
-// AI integration to generate custom project files based on user selections
-export const generateCustomProject = async (
-  projectName: string,
-  projectDescription: string,
-  selectedTechStacks: string[],
-  theme: string = "blue"
-): Promise<string> => {
-  try {
-    // Get the theme colors
-    const themeColors = getThemeColors(theme);
-    
-    // Create a new JSZip instance
-    const zip = new JSZip();
-    
-    // Try to generate project using AI if GROQ API is available
-    try {
-      const generatedFiles = await generateWithAI(projectName, projectDescription, selectedTechStacks, theme);
-      
-      // Add AI-generated files to the zip
-      Object.entries(generatedFiles).forEach(([path, content]) => {
-        // Handle directories
-        if (path.includes('/')) {
-          const directory = path.substring(0, path.lastIndexOf('/'));
-          if (!zip.folder(directory)) {
-            zip.folder(directory);
-          }
-        }
-        
-        zip.file(path, content);
-      });
-    } catch (error) {
-      console.error("AI generation failed, falling back to templates:", error);
-      
-      // If AI generation fails, fall back to template generation
-      let projectFiles: Record<string, string> = {};
-      
-      // Generate based on selected tech stacks
-      if (selectedTechStacks.includes("alpine")) {
-        const mockTemplate = {
-          name: projectName,
-          description: projectDescription,
-          techStack: selectedTechStacks,
-          customTheme: theme,
-        } as Template;
-        
-        projectFiles = generateAlpineTemplate(mockTemplate, themeColors);
-      } 
-      else if (selectedTechStacks.includes("react")) {
-        const mockTemplate = {
-          name: projectName,
-          description: projectDescription,
-          techStack: selectedTechStacks,
-          customTheme: theme,
-        } as Template;
-        
-        projectFiles = generateReactTemplate(mockTemplate, themeColors);
-      }
-      else if (selectedTechStacks.includes("vue")) {
-        const mockTemplate = {
-          name: projectName,
-          description: projectDescription,
-          techStack: selectedTechStacks,
-          customTheme: theme,
-        } as Template;
-        
-        projectFiles = generateVueTemplate(mockTemplate, themeColors);
-      }
-      else {
-        // Default to basic template
-        const mockTemplate = {
-          name: projectName,
-          description: projectDescription,
-          techStack: selectedTechStacks,
-          customTheme: theme,
-        } as Template;
-        
-        projectFiles = generateBasicTemplate(mockTemplate, themeColors);
-      }
-      
-      // Add files to the zip
-      Object.entries(projectFiles).forEach(([path, content]) => {
-        // Handle directories
-        if (path.includes('/')) {
-          const directory = path.substring(0, path.lastIndexOf('/'));
-          if (!zip.folder(directory)) {
-            zip.folder(directory);
-          }
-        }
-        
-        zip.file(path, content);
-      });
-    }
-    
-    // Add README.md
-    zip.file("README.md", `
-# ${projectName}
-
-${projectDescription}
-
-## Tech Stack
-
-${selectedTechStacks.join(', ')}
-
-## Getting Started
-
-1. Clone this repository
-2. Install dependencies with \`npm install\` or \`yarn\`
-3. Start the development server with \`npm run dev\` or \`yarn dev\`
-
-## Features
-
-- Responsive design
-- ${theme.charAt(0).toUpperCase() + theme.slice(1)} theme colors
-- Modern UI components
-- Easy to customize
-    `);
-    
-    // Add package.json with appropriate dependencies
-    zip.file("package.json", generatePackageJson(projectName, projectDescription, selectedTechStacks));
-    
-    // Generate the zip file
-    const zipContent = await zip.generateAsync({ type: "blob" });
-    
-    // Create a URL for the blob
-    return URL.createObjectURL(zipContent);
-  } catch (error) {
-    console.error("Error generating custom project:", error);
-    throw new Error("Failed to generate custom project");
-  }
-};
-
-// Function to integrate with GROQ API
-export const integrateWithGroq = async (
-  prompt: string,
-  systemMessage: string = "You are an expert full-stack developer who creates comprehensive, production-ready web applications."
-): Promise<string> => {
-  try {
-    // Try to get the GROQ API key from a global environment variable or configuration
-    const GROQ_API_KEY = (window as any).GROQ_API_KEY || process.env.GROQ_API_KEY;
-    
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ API Key not found");
-    }
-
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-70b-versatile",
-        messages: [
-          {
-            role: "system",
-            content: systemMessage,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_tokens: 8000,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || "GROQ API request failed");
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error("Error using GROQ API:", error);
-    throw error;
-  }
-};
-
-// Helper function to generate project files using AI
-const generateWithAI = async (
-  projectName: string,
-  projectDescription: string,
-  selectedTechStacks: string[],
-  theme: string
-): Promise<Record<string, string>> => {
-  const themeColors = getThemeColors(theme);
+// Helper function to generate dependencies based on tech stack
+function generateDependencies(techStack: string[]): string {
+  const deps: Record<string, string> = {};
   
-  // Format the prompt for the AI
-  const prompt = `
-Generate a complete web project with the following details:
-
-Project Name: ${projectName}
-Project Description: ${projectDescription}
-Tech Stack: ${selectedTechStacks.join(', ')}
-Theme Colors: 
-- Primary: ${themeColors.primary}
-- Secondary: ${themeColors.secondary}
-- Accent: ${themeColors.accent}
-
-Requirements:
-1. Create a responsive and modern web application
-2. Include a home page, about page, and contact page
-3. Use the specified tech stack (${selectedTechStacks.join(', ')})
-4. Apply the theme colors throughout the UI
-5. Follow best practices for the selected technologies
-6. Make sure the code is well-structured and maintainable
-7. Include comments and documentation for key functionality
-
-Return your response as a collection of files with their paths and content. Use format:
-
-FILE: [file path]
-[file content]
-END_FILE
-
-For example:
-FILE: index.html
-<!DOCTYPE html>
-<html>...</html>
-END_FILE
-
-FILE: styles/main.css
-body {...}
-END_FILE
-
-You MUST include at least the following files:
-- index.html (or equivalent main entry point)
-- CSS styling
-- JavaScript functionality
-- README.md with setup instructions
-`;
-
-  try {
-    // Call the AI service to generate the project
-    const aiResponse = await integrateWithGroq(prompt);
-    
-    // Parse the AI response to extract files
-    const filePattern = /FILE: ([^\n]+)\n([\s\S]*?)END_FILE/g;
-    const files: Record<string, string> = {};
-    
-    let match;
-    while ((match = filePattern.exec(aiResponse)) !== null) {
-      const [, filePath, fileContent] = match;
-      files[filePath.trim()] = fileContent.trim();
-    }
-    
-    // If no files were extracted, throw an error
-    if (Object.keys(files).length === 0) {
-      throw new Error("Could not parse AI response for files");
-    }
-    
-    return files;
-  } catch (error) {
-    console.error("Error generating with AI:", error);
-    throw error;
-  }
-};
-
-// Functions to generate template-specific files
-
-// Generate Alpine.js template
-function generateAlpineTemplate(template: Template, themeColors: any): Record<string, string> {
-  return {
-    "index.html": `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${template.name}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <link rel="stylesheet" href="./styles/main.css">
-  <script defer src="https://unpkg.com/alpinejs@3.12.3/dist/cdn.min.js"></script>
-</head>
-<body class="bg-gray-100 font-sans">
-  <div x-data="{ isOpen: false, darkMode: false, activePage: 'home' }">
-    <header class="bg-white shadow-md" :class="{ 'dark-header': darkMode }">
-      <nav class="container mx-auto px-6 py-4">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center">
-            <a href="#" class="text-2xl font-bold text-gray-800" :class="{ 'text-white': darkMode }" style="color: ${themeColors.primary}">
-              ${template.name}
-            </a>
-          </div>
-          
-          <div class="hidden md:flex items-center space-x-8">
-            <a href="#" 
-               class="hover:text-gray-600 transition" 
-               :class="{ 'text-white hover:text-gray-200': darkMode, 'text-gray-800': !darkMode }"
-               @click.prevent="activePage = 'home'">Home</a>
-            <a href="#" 
-               class="hover:text-gray-600 transition" 
-               :class="{ 'text-white hover:text-gray-200': darkMode, 'text-gray-800': !darkMode }"
-               @click.prevent="activePage = 'features'">Features</a>
-            <a href="#" 
-               class="hover:text-gray-600 transition" 
-               :class="{ 'text-white hover:text-gray-200': darkMode, 'text-gray-800': !darkMode }"
-               @click.prevent="activePage = 'about'">About</a>
-            <a href="#" 
-               class="hover:text-gray-600 transition" 
-               :class="{ 'text-white hover:text-gray-200': darkMode, 'text-gray-800': !darkMode }"
-               @click.prevent="activePage = 'contact'">Contact</a>
-          </div>
-          
-          <div class="flex items-center space-x-4">
-            <button @click="darkMode = !darkMode" class="p-2 rounded-full hover:bg-gray-200">
-              <template x-if="darkMode">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </template>
-              <template x-if="!darkMode">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              </template>
-            </button>
-            
-            <button @click="isOpen = !isOpen" class="md:hidden focus:outline-none">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <!-- Mobile Menu -->
-        <div x-show="isOpen" class="md:hidden mt-3 space-y-2" x-transition>
-          <a href="#" @click.prevent="activePage = 'home'; isOpen = false" class="block py-2 px-4 hover:bg-gray-200" :class="{ 'text-white hover:bg-gray-700': darkMode }">Home</a>
-          <a href="#" @click.prevent="activePage = 'features'; isOpen = false" class="block py-2 px-4 hover:bg-gray-200" :class="{ 'text-white hover:bg-gray-700': darkMode }">Features</a>
-          <a href="#" @click.prevent="activePage = 'about'; isOpen = false" class="block py-2 px-4 hover:bg-gray-200" :class="{ 'text-white hover:bg-gray-700': darkMode }">About</a>
-          <a href="#" @click.prevent="activePage = 'contact'; isOpen = false" class="block py-2 px-4 hover:bg-gray-200" :class="{ 'text-white hover:bg-gray-700': darkMode }">Contact</a>
-        </div>
-      </nav>
-    </header>
-    
-    <main :class="{ 'dark-mode': darkMode }">
-      <!-- Home Page -->
-      <section x-show="activePage === 'home'" class="container mx-auto px-6 py-12">
-        <div class="flex flex-col md:flex-row items-center">
-          <div class="md:w-1/2 mb-8 md:mb-0">
-            <h1 class="text-4xl md:text-5xl font-bold mb-6" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }" style="color: ${themeColors.primary}">
-              Welcome to ${template.name}
-            </h1>
-            <p class="text-lg mb-6" :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-              ${template.description}
-            </p>
-            <div class="flex space-x-4">
-              <button class="btn-primary" style="background-color: ${themeColors.primary}">
-                Get Started
-              </button>
-              <button class="btn-secondary" style="border-color: ${themeColors.secondary}; color: ${themeColors.secondary}">
-                Learn More
-              </button>
-            </div>
-          </div>
-          <div class="md:w-1/2">
-            <div class="rounded-lg shadow-xl overflow-hidden bg-white" :class="{ 'bg-gray-800': darkMode }">
-              <div class="h-64 bg-gradient-to-r" style="background: linear-gradient(to right, ${themeColors.primary}, ${themeColors.secondary})"></div>
-              <div class="p-6">
-                <h3 class="text-xl font-bold mb-2" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-                  Beautiful Design
-                </h3>
-                <p :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-                  This template includes a beautiful design with customizable colors and components.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Features Page -->
-      <section x-show="activePage === 'features'" class="container mx-auto px-6 py-12">
-        <h2 class="text-3xl font-bold mb-12 text-center" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }" style="color: ${themeColors.primary}">
-          Features
-        </h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="p-6 rounded-lg shadow-md" :class="{ 'bg-gray-800': darkMode, 'bg-white': !darkMode }">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background-color: ${themeColors.primary}">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold mb-2" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-              Fast Performance
-            </h3>
-            <p :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-              Optimized for speed and efficiency with lightweight Alpine.js.
-            </p>
-          </div>
-          
-          <div class="p-6 rounded-lg shadow-md" :class="{ 'bg-gray-800': darkMode, 'bg-white': !darkMode }">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background-color: ${themeColors.secondary}">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold mb-2" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-              Beautiful UI
-            </h3>
-            <p :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-              Modern and clean UI components with responsive design.
-            </p>
-          </div>
-          
-          <div class="p-6 rounded-lg shadow-md" :class="{ 'bg-gray-800': darkMode, 'bg-white': !darkMode }">
-            <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background-color: ${themeColors.accent}">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-              </svg>
-            </div>
-            <h3 class="text-xl font-semibold mb-2" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-              Customizable
-            </h3>
-            <p :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-              Easy to customize with Tailwind CSS and Alpine.js variables.
-            </p>
-          </div>
-        </div>
-      </section>
-      
-      <!-- About Page -->
-      <section x-show="activePage === 'about'" class="container mx-auto px-6 py-12">
-        <h2 class="text-3xl font-bold mb-12 text-center" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }" style="color: ${themeColors.primary}">
-          About Us
-        </h2>
-        
-        <div class="flex flex-col md:flex-row items-center">
-          <div class="md:w-1/2 mb-8 md:mb-0">
-            <div class="rounded-lg shadow-xl overflow-hidden">
-              <div class="h-64 bg-gradient-to-br" style="background: linear-gradient(to bottom right, ${themeColors.primary}, ${themeColors.accent})"></div>
-            </div>
-          </div>
-          
-          <div class="md:w-1/2 md:pl-12">
-            <h3 class="text-2xl font-semibold mb-4" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-              Our Story
-            </h3>
-            <p class="mb-4" :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, velit vel bibendum bibendum, 
-              nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum.
-            </p>
-            <p :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">
-              Nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum, 
-              nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum.
-            </p>
-          </div>
-        </div>
-      </section>
-      
-      <!-- Contact Page -->
-      <section x-show="activePage === 'contact'" class="container mx-auto px-6 py-12">
-        <h2 class="text-3xl font-bold mb-12 text-center" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }" style="color: ${themeColors.primary}">
-          Contact Us
-        </h2>
-        
-        <div class="flex flex-col md:flex-row">
-          <div class="md:w-1/2 mb-8 md:mb-0 md:pr-8">
-            <form x-data="{ name: '', email: '', message: '' }" @submit.prevent="alert('Form submitted!')">
-              <div class="mb-4">
-                <label class="block mb-2" :class="{ 'text-gray-200': darkMode, 'text-gray-700': !darkMode }">Name</label>
-                <input type="text" x-model="name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" 
-                  :class="{ 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500': darkMode, 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500': !darkMode }"
-                  required>
-              </div>
-              
-              <div class="mb-4">
-                <label class="block mb-2" :class="{ 'text-gray-200': darkMode, 'text-gray-700': !darkMode }">Email</label>
-                <input type="email" x-model="email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" 
-                  :class="{ 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500': darkMode, 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500': !darkMode }"
-                  required>
-              </div>
-              
-              <div class="mb-4">
-                <label class="block mb-2" :class="{ 'text-gray-200': darkMode, 'text-gray-700': !darkMode }">Message</label>
-                <textarea x-model="message" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2" 
-                  :class="{ 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500': darkMode, 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500': !darkMode }"
-                  rows="5" required></textarea>
-              </div>
-              
-              <button type="submit" class="btn-primary" style="background-color: ${themeColors.primary}">
-                Send Message
-              </button>
-            </form>
-          </div>
-          
-          <div class="md:w-1/2 md:pl-8">
-            <div class="rounded-lg overflow-hidden shadow-lg p-6" :class="{ 'bg-gray-800': darkMode, 'bg-white': !darkMode }">
-              <h3 class="text-xl font-semibold mb-4" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }" style="color: ${themeColors.secondary}">
-                Get in Touch
-              </h3>
-              
-              <div class="space-y-4">
-                <div class="flex items-start">
-                  <div class="flex-shrink-0 mt-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'text-gray-200': darkMode, 'text-gray-700': !darkMode }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div class="ml-4">
-                    <p class="text-sm" :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">Email</p>
-                    <p class="text-base font-medium" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-                      contact@example.com
-                    </p>
-                  </div>
-                </div>
-                
-                <div class="flex items-start">
-                  <div class="flex-shrink-0 mt-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'text-gray-200': darkMode, 'text-gray-700': !darkMode }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                  </div>
-                  <div class="ml-4">
-                    <p class="text-sm" :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">Phone</p>
-                    <p class="text-base font-medium" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-                      +1 (123) 456-7890
-                    </p>
-                  </div>
-                </div>
-                
-                <div class="flex items-start">
-                  <div class="flex-shrink-0 mt-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" :class="{ 'text-gray-200': darkMode, 'text-gray-700': !darkMode }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <div class="ml-4">
-                    <p class="text-sm" :class="{ 'text-gray-300': darkMode, 'text-gray-600': !darkMode }">Address</p>
-                    <p class="text-base font-medium" :class="{ 'text-white': darkMode, 'text-gray-800': !darkMode }">
-                      123 Main Street, City, Country
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-    
-    <footer class="py-8 mt-12" :class="{ 'bg-gray-900 text-white': darkMode, 'bg-gray-100 text-gray-700': !darkMode }">
-      <div class="container mx-auto px-6">
-        <div class="flex flex-col md:flex-row justify-between items-center">
-          <div class="mb-6 md:mb-0">
-            <a href="#" class="text-xl font-bold" style="color: ${themeColors.primary}">
-              ${template.name}
-            </a>
-            <p class="mt-2 text-sm" :class="{ 'text-gray-400': darkMode, 'text-gray-500': !darkMode }">
-              &copy; 2025 All Rights Reserved
-            </p>
-          </div>
-          
-          <div class="flex space-x-6">
-            <a href="#" class="hover:text-gray-400 transition-colors">Terms</a>
-            <a href="#" class="hover:text-gray-400 transition-colors">Privacy</a>
-            <a href="#" class="hover:text-gray-400 transition-colors">Support</a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  </div>
+  if (techStack.includes('React')) deps['react'] = '"^18.2.0"';
+  if (techStack.includes('Vue')) deps['vue'] = '"^3.3.4"';
+  if (techStack.includes('Tailwind CSS')) deps['tailwindcss'] = '"^3.3.3"';
+  if (techStack.includes('TypeScript')) deps['typescript'] = '"^5.0.2"';
+  if (techStack.includes('Next.js')) deps['next'] = '"^13.4.12"';
+  if (techStack.includes('Chart.js')) deps['chart.js'] = '"^4.3.0"';
+  if (techStack.includes('Express')) deps['express'] = '"^4.18.2"';
+  if (techStack.includes('MongoDB')) deps['mongodb'] = '"^5.7.0"';
+  if (techStack.includes('Alpine.js')) deps['alpinejs'] = '"^3.12.3"';
+  if (techStack.includes('Gatsby')) deps['gatsby'] = '"^5.12.4"';
+  if (techStack.includes('GraphQL')) deps['graphql'] = '"^16.8.1"';
+  if (techStack.includes('Framer Motion')) deps['framer-motion'] = '"^10.16.4"';
+  if (techStack.includes('Material UI')) deps['@mui/material'] = '"^5.14.15"';
+  if (techStack.includes('Redux')) deps['redux'] = '"^4.2.1"';
+  if (techStack.includes('React Native')) deps['react-native'] = '"^0.72.6"';
+  if (techStack.includes('Expo')) deps['expo'] = '"^49.0.0"';
   
-  <script src="./src/main.js"></script>
-</body>
-</html>`,
-
-    "styles/main.css": `:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.3s, color 0.3s;
-}
-
-.dark-mode {
-  background-color: #1a1a1a;
-  color: #ffffff;
-}
-
-.dark-header {
-  background-color: #2a2a2a;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: white;
-  background-color: var(--primary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background-color: var(--secondary-color);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: var(--secondary-color);
-  background-color: transparent;
-  border: 1px solid var(--secondary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.dark-mode .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Animation utilities */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}`,
-
-    "src/main.js": `// Main JavaScript file
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('${template.name} application loaded');
-  
-  // You can add additional JavaScript functionality here
-  
-  // Example: Show a welcome message in the console
-  console.log('Welcome to ${template.name}!');
-  console.log('This application uses Alpine.js for reactivity');
-  
-  // Example: Log theme colors
-  console.log('Theme colors:', {
-    primary: '${themeColors.primary}',
-    secondary: '${themeColors.secondary}',
-    accent: '${themeColors.accent}'
-  });
-});
-
-// This file can be extended with additional functionality as needed`,
-
-    "README.md": `# ${template.name}
-
-${template.description}
-
-## Features
-
-- Built with Alpine.js and Tailwind CSS
-- Responsive design for all device sizes
-- Dark mode toggle
-- Customizable theme colors
-- Multiple page navigation
-- Interactive components
-
-## Getting Started
-
-1. Clone this repository
-2. Open index.html in your browser
-3. For a production deployment, consider using a static file server
-
-## Customization
-
-You can customize the theme colors by editing the CSS variables in \`styles/main.css\`:
-
-\`\`\`css
-:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-\`\`\`
-
-## Tech Stack
-
-${template.techStack.join(', ')}
-
-## License
-
-MIT
-`
-  };
-}
-
-// Generate React template
-function generateReactTemplate(template: Template, themeColors: any): Record<string, string> {
-  const includeTypeScript = template.techStack.includes('TypeScript');
-  const extension = includeTypeScript ? 'tsx' : 'jsx';
-  
-  return {
-    "index.html": `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${template.name}</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.${includeTypeScript ? 'tsx' : 'jsx'}"></script>
-</body>
-</html>`,
-
-    [`src/main.${extension}`]: `import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './styles/index.css';
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);`,
-
-    [`src/App.${extension}`]: `import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import HomePage from './pages/HomePage';
-import FeaturesPage from './pages/FeaturesPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import { ThemeProvider } from './contexts/ThemeContext';
-
-${includeTypeScript ? `interface AppProps {}` : ''}
-
-const App${includeTypeScript ? ': React.FC<AppProps>' : ''} = () => {
-  return (
-    <ThemeProvider>
-      <Router>
-        <div className="app">
-          <Header />
-          <main>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/features" element={<FeaturesPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
-    </ThemeProvider>
-  );
-};
-
-export default App;`,
-
-    [`src/contexts/ThemeContext.${extension}`]: `import React, { createContext, useState, useContext, useEffect } from 'react';
-
-${includeTypeScript ? `
-interface ThemeContextType {
-  darkMode: boolean;
-  toggleDarkMode: () => void;
-}
-
-interface ThemeProviderProps {
-  children: React.ReactNode;
-}` : ''}
-
-const ThemeContext = createContext(${includeTypeScript ? 
-  '{ darkMode: false, toggleDarkMode: () => {} } as ThemeContextType' : 
-  '{ darkMode: false, toggleDarkMode: () => {} }'});
-
-export const useTheme = () => useContext(ThemeContext);
-
-export const ThemeProvider${includeTypeScript ? ': React.FC<ThemeProviderProps>' : ''} = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(false);
-
-  // Check for user preference on mount
-  useEffect(() => {
-    const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-    setDarkMode(isDarkMode);
-  }, []);
-  
-  // Update when darkMode changes
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('darkMode', 'true');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('darkMode', 'false');
-    }
-  }, [darkMode]);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
-
-  return (
-    <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>
-      {children}
-    </ThemeContext.Provider>
-  );
-};`,
-
-    [`src/components/Header.${extension}`]: `import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
-
-${includeTypeScript ? `interface HeaderProps {}` : ''}
-
-const Header${includeTypeScript ? ': React.FC<HeaderProps>' : ''} = () => {
-  const { darkMode, toggleDarkMode } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
-  
-  const toggleMenu = () => setIsOpen(!isOpen);
-  
-  return (
-    <header className={`py-4 shadow-md ${darkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
-      <div className="container mx-auto px-6">
-        <div className="flex justify-between items-center">
-          <Link to="/" className="text-2xl font-bold" style={{ color: '${themeColors.primary}' }}>
-            ${template.name}
-          </Link>
-          
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/" className={darkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'}>
-              Home
-            </Link>
-            <Link to="/features" className={darkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'}>
-              Features
-            </Link>
-            <Link to="/about" className={darkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'}>
-              About
-            </Link>
-            <Link to="/contact" className={darkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'}>
-              Contact
-            </Link>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={toggleDarkMode} 
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-            >
-              {darkMode ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-            </button>
-            
-            <button 
-              onClick={toggleMenu}
-              className="md:hidden focus:outline-none"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${darkMode ? 'text-white' : 'text-gray-800'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        {/* Mobile Menu */}
-        {isOpen && (
-          <div className="md:hidden mt-3 space-y-2">
-            <Link to="/" onClick={toggleMenu} className={`block py-2 px-4 ${darkMode ? 'text-white hover:bg-gray-800' : 'text-gray-800 hover:bg-gray-100'}`}>
-              Home
-            </Link>
-            <Link to="/features" onClick={toggleMenu} className={`block py-2 px-4 ${darkMode ? 'text-white hover:bg-gray-800' : 'text-gray-800 hover:bg-gray-100'}`}>
-              Features
-            </Link>
-            <Link to="/about" onClick={toggleMenu} className={`block py-2 px-4 ${darkMode ? 'text-white hover:bg-gray-800' : 'text-gray-800 hover:bg-gray-100'}`}>
-              About
-            </Link>
-            <Link to="/contact" onClick={toggleMenu} className={`block py-2 px-4 ${darkMode ? 'text-white hover:bg-gray-800' : 'text-gray-800 hover:bg-gray-100'}`}>
-              Contact
-            </Link>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-};
-
-export default Header;`,
-
-    [`src/components/Footer.${extension}`]: `import React from 'react';
-import { Link } from 'react-router-dom';
-import { useTheme } from '../contexts/ThemeContext';
-
-${includeTypeScript ? `interface FooterProps {}` : ''}
-
-const Footer${includeTypeScript ? ': React.FC<FooterProps>' : ''} = () => {
-  const { darkMode } = useTheme();
-  
-  return (
-    <footer className={\`py-8 mt-12 \${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'}\`}>
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-6 md:mb-0">
-            <Link to="/" className="text-xl font-bold" style={{ color: '${themeColors.primary}' }}>
-              ${template.name}
-            </Link>
-            <p className={\`mt-2 text-sm \${darkMode ? 'text-gray-400' : 'text-gray-500'}\`}>
-              &copy; {new Date().getFullYear()} All Rights Reserved
-            </p>
-          </div>
-          
-          <div className="flex space-x-6">
-            <Link to="#" className="hover:text-gray-400 transition-colors">Terms</Link>
-            <Link to="#" className="hover:text-gray-400 transition-colors">Privacy</Link>
-            <Link to="#" className="hover:text-gray-400 transition-colors">Support</Link>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
-export default Footer;`,
-
-    [`src/pages/HomePage.${extension}`]: `import React from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-import Button from '../components/Button';
-
-${includeTypeScript ? `interface HomePageProps {}` : ''}
-
-const HomePage${includeTypeScript ? ': React.FC<HomePageProps>' : ''} = () => {
-  const { darkMode } = useTheme();
-  
-  return (
-    <section className="container mx-auto px-6 py-12">
-      <div className="flex flex-col md:flex-row items-center">
-        <div className="md:w-1/2 mb-8 md:mb-0">
-          <h1 
-            className={\`text-4xl md:text-5xl font-bold mb-6 \${darkMode ? 'text-white' : 'text-gray-800'}\`}
-            style={{ color: '${themeColors.primary}' }}
-          >
-            Welcome to ${template.name}
-          </h1>
-          <p className={\`text-lg mb-6 \${darkMode ? 'text-gray-300' : 'text-gray-600'}\`}>
-            ${template.description}
-          </p>
-          <div className="flex space-x-4">
-            <Button 
-              variant="primary" 
-              style={{ backgroundColor: '${themeColors.primary}' }}
-            >
-              Get Started
-            </Button>
-            <Button 
-              variant="secondary"
-              style={{ borderColor: '${themeColors.secondary}', color: '${themeColors.secondary}' }}
-            >
-              Learn More
-            </Button>
-          </div>
-        </div>
-        <div className="md:w-1/2">
-          <div className={\`rounded-lg shadow-xl overflow-hidden \${darkMode ? 'bg-gray-800' : 'bg-white'}\`}>
-            <div 
-              className="h-64 bg-gradient-to-r" 
-              style={{ background: \`linear-gradient(to right, ${themeColors.primary}, ${themeColors.secondary})\` }}
-            />
-            <div className="p-6">
-              <h3 className={\`text-xl font-bold mb-2 \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-                Beautiful Design
-              </h3>
-              <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-                This template includes a beautiful design with customizable colors and components.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default HomePage;`,
-
-    [`src/pages/FeaturesPage.${extension}`]: `import React from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-
-${includeTypeScript ? `interface FeaturesPageProps {}` : ''}
-
-const FeaturesPage${includeTypeScript ? ': React.FC<FeaturesPageProps>' : ''} = () => {
-  const { darkMode } = useTheme();
-  
-  return (
-    <section className="container mx-auto px-6 py-12">
-      <h2 
-        className={\`text-3xl font-bold mb-12 text-center \${darkMode ? 'text-white' : 'text-gray-800'}\`}
-        style={{ color: '${themeColors.primary}' }}
-      >
-        Features
-      </h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className={\`p-6 rounded-lg shadow-md \${darkMode ? 'bg-gray-800' : 'bg-white'}\`}>
-          <div 
-            className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-            style={{ backgroundColor: '${themeColors.primary}' }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h3 className={\`text-xl font-semibold mb-2 \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-            Fast Performance
-          </h3>
-          <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-            Optimized for speed and efficiency with React.
-          </p>
-        </div>
-        
-        <div className={\`p-6 rounded-lg shadow-md \${darkMode ? 'bg-gray-800' : 'bg-white'}\`}>
-          <div 
-            className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-            style={{ backgroundColor: '${themeColors.secondary}' }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-            </svg>
-          </div>
-          <h3 className={\`text-xl font-semibold mb-2 \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-            Beautiful UI
-          </h3>
-          <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-            Modern and clean UI components with responsive design.
-          </p>
-        </div>
-        
-        <div className={\`p-6 rounded-lg shadow-md \${darkMode ? 'bg-gray-800' : 'bg-white'}\`}>
-          <div 
-            className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-            style={{ backgroundColor: '${themeColors.accent}' }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-            </svg>
-          </div>
-          <h3 className={\`text-xl font-semibold mb-2 \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-            Customizable
-          </h3>
-          <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-            Easy to customize with ${includeTypeScript ? 'TypeScript' : 'JavaScript'} and CSS variables.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default FeaturesPage;`,
-
-    [`src/pages/AboutPage.${extension}`]: `import React from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-
-${includeTypeScript ? `interface AboutPageProps {}` : ''}
-
-const AboutPage${includeTypeScript ? ': React.FC<AboutPageProps>' : ''} = () => {
-  const { darkMode } = useTheme();
-  
-  return (
-    <section className="container mx-auto px-6 py-12">
-      <h2 
-        className={\`text-3xl font-bold mb-12 text-center \${darkMode ? 'text-white' : 'text-gray-800'}\`}
-        style={{ color: '${themeColors.primary}' }}
-      >
-        About Us
-      </h2>
-      
-      <div className="flex flex-col md:flex-row items-center">
-        <div className="md:w-1/2 mb-8 md:mb-0">
-          <div className="rounded-lg shadow-xl overflow-hidden">
-            <div 
-              className="h-64 bg-gradient-to-br" 
-              style={{ background: \`linear-gradient(to bottom right, ${themeColors.primary}, ${themeColors.accent})\` }}
-            />
-          </div>
-        </div>
-        
-        <div className="md:w-1/2 md:pl-12">
-          <h3 className={\`text-2xl font-semibold mb-4 \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-            Our Story
-          </h3>
-          <p className={\`mb-4 \${darkMode ? 'text-gray-300' : 'text-gray-600'}\`}>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, velit vel bibendum bibendum, 
-            nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum.
-          </p>
-          <p className={darkMode ? 'text-gray-300' : 'text-gray-600'}>
-            Nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum, 
-            nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default AboutPage;`,
-
-    [`src/pages/ContactPage.${extension}`]: `import React, { useState } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
-import Button from '../components/Button';
-
-${includeTypeScript ? `
-interface ContactPageProps {}
-
-interface FormData {
-  name: string;
-  email: string;
-  message: string;
-}` : ''}
-
-const ContactPage${includeTypeScript ? ': React.FC<ContactPageProps>' : ''} = () => {
-  const { darkMode } = useTheme();
-  const [formData, setFormData] = useState${includeTypeScript ? '<FormData>' : ''}({
-    name: '',
-    email: '',
-    message: ''
-  });
-  
-  const handleChange = (e${includeTypeScript ? ': React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>' : ''}) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-  
-  const handleSubmit = (e${includeTypeScript ? ': React.FormEvent<HTMLFormElement>' : ''}) => {
-    e.preventDefault();
-    alert('Form submitted!');
-    console.log(formData);
-  };
-  
-  return (
-    <section className="container mx-auto px-6 py-12">
-      <h2 
-        className={\`text-3xl font-bold mb-12 text-center \${darkMode ? 'text-white' : 'text-gray-800'}\`}
-        style={{ color: '${themeColors.primary}' }}
-      >
-        Contact Us
-      </h2>
-      
-      <div className="flex flex-col md:flex-row">
-        <div className="md:w-1/2 mb-8 md:mb-0 md:pr-8">
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label 
-                className={\`block mb-2 \${darkMode ? 'text-gray-200' : 'text-gray-700'}\`}
-              >
-                Name
-              </label>
-              <input 
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                className={
-                  \`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 \${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500' 
-                      : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500'
-                  }\`
-                }
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label 
-                className={\`block mb-2 \${darkMode ? 'text-gray-200' : 'text-gray-700'}\`}
-              >
-                Email
-              </label>
-              <input 
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className={
-                  \`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 \${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500' 
-                      : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500'
-                  }\`
-                }
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label 
-                className={\`block mb-2 \${darkMode ? 'text-gray-200' : 'text-gray-700'}\`}
-              >
-                Message
-              </label>
-              <textarea 
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                className={
-                  \`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 \${
-                    darkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white focus:ring-blue-500' 
-                      : 'bg-white border-gray-300 text-gray-900 focus:ring-blue-500'
-                  }\`
-                }
-                rows={5}
-                required
-              />
-            </div>
-            
-            <Button 
-              type="submit"
-              variant="primary"
-              style={{ backgroundColor: '${themeColors.primary}' }}
-            >
-              Send Message
-            </Button>
-          </form>
-        </div>
-        
-        <div className="md:w-1/2 md:pl-8">
-          <div className={\`rounded-lg overflow-hidden shadow-lg p-6 \${darkMode ? 'bg-gray-800' : 'bg-white'}\`}>
-            <h3 
-              className={\`text-xl font-semibold mb-4 \${darkMode ? 'text-white' : 'text-gray-800'}\`}
-              style={{ color: '${themeColors.secondary}' }}
-            >
-              Get in Touch
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className={\`h-5 w-5 \${darkMode ? 'text-gray-200' : 'text-gray-700'}\`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className={\`text-sm \${darkMode ? 'text-gray-300' : 'text-gray-600'}\`}>Email</p>
-                  <p className={\`text-base font-medium \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-                    contact@example.com
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className={\`h-5 w-5 \${darkMode ? 'text-gray-200' : 'text-gray-700'}\`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className={\`text-sm \${darkMode ? 'text-gray-300' : 'text-gray-600'}\`}>Phone</p>
-                  <p className={\`text-base font-medium \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-                    +1 (123) 456-7890
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-start">
-                <div className="flex-shrink-0 mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" className={\`h-5 w-5 \${darkMode ? 'text-gray-200' : 'text-gray-700'}\`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <p className={\`text-sm \${darkMode ? 'text-gray-300' : 'text-gray-600'}\`}>Address</p>
-                  <p className={\`text-base font-medium \${darkMode ? 'text-white' : 'text-gray-800'}\`}>
-                    123 Main Street, City, Country
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-export default ContactPage;`,
-
-    [`src/components/Button.${extension}`]: `import React from 'react';
-
-${includeTypeScript ? `
-interface ButtonProps {
-  children: React.ReactNode;
-  variant?: 'primary' | 'secondary';
-  type?: 'button' | 'submit' | 'reset';
-  onClick?: () => void;
-  style?: React.CSSProperties;
-}` : ''}
-
-const Button${includeTypeScript ? ': React.FC<ButtonProps>' : ''} = ({
-  children,
-  variant = 'primary',
-  type = 'button',
-  onClick,
-  style = {}
-}) => {
-  const baseClasses = 'inline-flex items-center justify-center px-6 py-2 font-medium rounded-md transition-colors';
-  
-  const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-transparent border border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800'
-  };
-  
-  return (
-    <button
-      type={type}
-      className={\`\${baseClasses} \${variantClasses[variant]}\`}
-      onClick={onClick}
-      style={style}
-    >
-      {children}
-    </button>
-  );
-};
-
-export default Button;`,
-
-    "src/styles/index.css": `@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
-
-:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.3s, color 0.3s;
-}
-
-.dark {
-  background-color: #121212;
-  color: #ffffff;
-}
-
-/* Custom utilities */
-.container {
-  width: 100%;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: white;
-  background-color: var(--primary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background-color: var(--secondary-color);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: var(--secondary-color);
-  background-color: transparent;
-  border: 1px solid var(--secondary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.dark .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Animation utilities */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}`,
-
-    "tailwind.config.js": `/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: 'class',
-  content: ["./src/**/*.{js,jsx,ts,tsx}", "./index.html"],
-  theme: {
-    extend: {
-      colors: {
-        primary: '${themeColors.primary}',
-        secondary: '${themeColors.secondary}',
-        accent: '${themeColors.accent}',
-      },
-    },
-  },
-  plugins: [],
-};`,
-
-    "postcss.config.js": `module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}`,
-
-    "README.md": `# ${template.name}
-
-${template.description}
-
-## Features
-
-- Built with React${includeTypeScript ? '/TypeScript' : ''} and Tailwind CSS
-- Dark mode support
-- Responsive design for all device sizes
-- Modern UI components
-- React Router integration
-- Customizable theme colors
-
-## Getting Started
-
-1. Clone this repository
-2. Install dependencies: \`npm install\` or \`yarn\`
-3. Start the development server: \`npm run dev\` or \`yarn dev\`
-4. Build for production: \`npm run build\` or \`yarn build\`
-
-## Project Structure
-
-\`\`\`
-src/
-├── components/    # UI components
-├── contexts/      # React contexts (theme)
-├── pages/         # Page components
-├── styles/        # CSS and Tailwind styles
-└── main.${extension}      # Entry point
-\`\`\`
-
-## Customization
-
-You can customize the theme colors by editing:
-- \`src/styles/index.css\` - CSS variables
-- \`tailwind.config.js\` - Tailwind theme settings
-
-## Tech Stack
-
-${template.techStack.join(', ')}
-
-## License
-
-MIT
-`
-  };
-}
-
-// Generate Vue template
-function generateVueTemplate(template: Template, themeColors: any): Record<string, string> {
-  return {
-    "index.html": `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${template.name}</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-  <div id="app"></div>
-  <script type="module" src="/src/main.js"></script>
-</body>
-</html>`,
-
-    "src/main.js": `import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
-import App from './App.vue'
-import './assets/main.css'
-import Home from './pages/Home.vue'
-import Features from './pages/Features.vue'
-import About from './pages/About.vue'
-import Contact from './pages/Contact.vue'
-
-const routes = [
-  { path: '/', component: Home },
-  { path: '/features', component: Features },
-  { path: '/about', component: About },
-  { path: '/contact', component: Contact }
-]
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes
-})
-
-const app = createApp(App)
-app.use(router)
-app.mount('#app')`,
-
-    "src/App.vue": `<template>
-  <div class="app" :class="{ 'dark': isDarkMode }">
-    <Header @toggle-dark-mode="toggleDarkMode" :isDarkMode="isDarkMode" />
-    <main :class="{ 'dark-mode': isDarkMode }">
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" :isDarkMode="isDarkMode" :primaryColor="'${themeColors.primary}'" :secondaryColor="'${themeColors.secondary}'" :accentColor="'${themeColors.accent}'" />
-        </transition>
-      </router-view>
-    </main>
-    <Footer :isDarkMode="isDarkMode" />
-  </div>
-</template>
-
-<script>
-import Header from './components/Header.vue'
-import Footer from './components/Footer.vue'
-
-export default {
-  components: {
-    Header,
-    Footer
-  },
-  data() {
-    return {
-      isDarkMode: false
-    }
-  },
-  methods: {
-    toggleDarkMode() {
-      this.isDarkMode = !this.isDarkMode
-      if (this.isDarkMode) {
-        document.documentElement.classList.add('dark')
-        localStorage.setItem('darkMode', 'true')
-      } else {
-        document.documentElement.classList.remove('dark')
-        localStorage.setItem('darkMode', 'false')
-      }
-    }
-  },
-  created() {
-    // Check for user preference on mount
-    const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-    this.isDarkMode = isDarkMode
-    
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark')
-    }
-  }
-}
-</script>
-
-<style>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.dark-mode {
-  background-color: #121212;
-  color: #ffffff;
-  min-height: calc(100vh - 140px);
-}
-</style>`,
-
-    "src/components/Header.vue": `<template>
-  <header :class="{'bg-gray-900 text-white': isDarkMode, 'bg-white text-gray-900': !isDarkMode}" class="py-4 shadow-md">
-    <div class="container mx-auto px-6">
-      <div class="flex justify-between items-center">
-        <router-link to="/" :style="{color: '${themeColors.primary}'}" class="text-2xl font-bold">
-          ${template.name}
-        </router-link>
-        
-        <div class="hidden md:flex items-center space-x-8">
-          <router-link to="/" :class="isDarkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'">
-            Home
-          </router-link>
-          <router-link to="/features" :class="isDarkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'">
-            Features
-          </router-link>
-          <router-link to="/about" :class="isDarkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'">
-            About
-          </router-link>
-          <router-link to="/contact" :class="isDarkMode ? 'text-white hover:text-gray-300' : 'text-gray-800 hover:text-gray-600'">
-            Contact
-          </router-link>
-        </div>
-        
-        <div class="flex items-center space-x-4">
-          <button 
-            @click="$emit('toggle-dark-mode')" 
-            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-          >
-            <template v-if="isDarkMode">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </template>
-            <template v-else>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            </template>
-          </button>
-          
-          <button 
-            @click="isOpen = !isOpen"
-            class="md:hidden focus:outline-none"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Mobile Menu -->
-      <div v-show="isOpen" class="md:hidden mt-3 space-y-2">
-        <router-link to="/" @click="isOpen = false" :class="{'text-white hover:bg-gray-800': isDarkMode, 'text-gray-800 hover:bg-gray-100': !isDarkMode}" class="block py-2 px-4">
-          Home
-        </router-link>
-        <router-link to="/features" @click="isOpen = false" :class="{'text-white hover:bg-gray-800': isDarkMode, 'text-gray-800 hover:bg-gray-100': !isDarkMode}" class="block py-2 px-4">
-          Features
-        </router-link>
-        <router-link to="/about" @click="isOpen = false" :class="{'text-white hover:bg-gray-800': isDarkMode, 'text-gray-800 hover:bg-gray-100': !isDarkMode}" class="block py-2 px-4">
-          About
-        </router-link>
-        <router-link to="/contact" @click="isOpen = false" :class="{'text-white hover:bg-gray-800': isDarkMode, 'text-gray-800 hover:bg-gray-100': !isDarkMode}" class="block py-2 px-4">
-          Contact
-        </router-link>
-      </div>
-    </div>
-  </header>
-</template>
-
-<script>
-export default {
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      required: true
-    }
-  },
-  data() {
-    return {
-      isOpen: false
-    }
-  },
-  emits: ['toggle-dark-mode']
-}
-</script>`,
-
-    "src/components/Footer.vue": `<template>
-  <footer :class="{'bg-gray-900 text-white': isDarkMode, 'bg-gray-100 text-gray-700': !isDarkMode}" class="py-8 mt-12">
-    <div class="container mx-auto px-6">
-      <div class="flex flex-col md:flex-row justify-between items-center">
-        <div class="mb-6 md:mb-0">
-          <router-link to="/" :style="{color: '${themeColors.primary}'}" class="text-xl font-bold">
-            ${template.name}
-          </router-link>
-          <p :class="{'text-gray-400': isDarkMode, 'text-gray-500': !isDarkMode}" class="mt-2 text-sm">
-            &copy; {{ new Date().getFullYear() }} All Rights Reserved
-          </p>
-        </div>
-        
-        <div class="flex space-x-6">
-          <router-link to="#" class="hover:text-gray-400 transition-colors">Terms</router-link>
-          <router-link to="#" class="hover:text-gray-400 transition-colors">Privacy</router-link>
-          <router-link to="#" class="hover:text-gray-400 transition-colors">Support</router-link>
-        </div>
-      </div>
-    </div>
-  </footer>
-</template>
-
-<script>
-export default {
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      required: true
-    }
-  }
-}
-</script>`,
-
-    "src/pages/Home.vue": `<template>
-  <section class="container mx-auto px-6 py-12">
-    <div class="flex flex-col md:flex-row items-center">
-      <div class="md:w-1/2 mb-8 md:mb-0">
-        <h1 
-          :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}"
-          :style="{color: primaryColor}"
-          class="text-4xl md:text-5xl font-bold mb-6"
-        >
-          Welcome to ${template.name}
-        </h1>
-        <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}" class="text-lg mb-6">
-          ${template.description}
-        </p>
-        <div class="flex space-x-4">
-          <button 
-            class="btn-primary"
-            :style="{backgroundColor: primaryColor}"
-          >
-            Get Started
-          </button>
-          <button 
-            class="btn-secondary"
-            :style="{borderColor: secondaryColor, color: secondaryColor}"
-          >
-            Learn More
-          </button>
-        </div>
-      </div>
-      <div class="md:w-1/2">
-        <div :class="{'bg-gray-800': isDarkMode, 'bg-white': !isDarkMode}" class="rounded-lg shadow-xl overflow-hidden">
-          <div 
-            class="h-64 bg-gradient-to-r" 
-            :style="{background: \`linear-gradient(to right, \${primaryColor}, \${secondaryColor})\`}"
-          ></div>
-          <div class="p-6">
-            <h3 :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-xl font-bold mb-2">
-              Beautiful Design
-            </h3>
-            <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}">
-              This template includes a beautiful design with customizable colors and components.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-</template>
-
-<script>
-export default {
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      required: true
-    },
-    primaryColor: {
-      type: String,
-      required: true
-    },
-    secondaryColor: {
-      type: String,
-      required: true
-    },
-    accentColor: {
-      type: String,
-      required: true
-    }
-  }
-}
-</script>`,
-
-    "src/pages/Features.vue": `<template>
-  <section class="container mx-auto px-6 py-12">
-    <h2 
-      :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}"
-      :style="{color: primaryColor}"
-      class="text-3xl font-bold mb-12 text-center"
-    >
-      Features
-    </h2>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      <div :class="{'bg-gray-800': isDarkMode, 'bg-white': !isDarkMode}" class="p-6 rounded-lg shadow-md">
-        <div 
-          class="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-          :style="{backgroundColor: primaryColor}"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <h3 :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-xl font-semibold mb-2">
-          Fast Performance
-        </h3>
-        <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}">
-          Optimized for speed and efficiency with Vue.js.
-        </p>
-      </div>
-      
-      <div :class="{'bg-gray-800': isDarkMode, 'bg-white': !isDarkMode}" class="p-6 rounded-lg shadow-md">
-        <div 
-          class="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-          :style="{backgroundColor: secondaryColor}"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-          </svg>
-        </div>
-        <h3 :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-xl font-semibold mb-2">
-          Beautiful UI
-        </h3>
-        <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}">
-          Modern and clean UI components with responsive design.
-        </p>
-      </div>
-      
-      <div :class="{'bg-gray-800': isDarkMode, 'bg-white': !isDarkMode}" class="p-6 rounded-lg shadow-md">
-        <div 
-          class="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-          :style="{backgroundColor: accentColor}"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-          </svg>
-        </div>
-        <h3 :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-xl font-semibold mb-2">
-          Customizable
-        </h3>
-        <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}">
-          Easy to customize with Vue.js and CSS variables.
-        </p>
-      </div>
-    </div>
-  </section>
-</template>
-
-<script>
-export default {
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      required: true
-    },
-    primaryColor: {
-      type: String,
-      required: true
-    },
-    secondaryColor: {
-      type: String,
-      required: true
-    },
-    accentColor: {
-      type: String,
-      required: true
-    }
-  }
-}
-</script>`,
-
-    "src/pages/About.vue": `<template>
-  <section class="container mx-auto px-6 py-12">
-    <h2 
-      :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}"
-      :style="{color: primaryColor}"
-      class="text-3xl font-bold mb-12 text-center"
-    >
-      About Us
-    </h2>
-    
-    <div class="flex flex-col md:flex-row items-center">
-      <div class="md:w-1/2 mb-8 md:mb-0">
-        <div class="rounded-lg shadow-xl overflow-hidden">
-          <div 
-            class="h-64 bg-gradient-to-br" 
-            :style="{background: \`linear-gradient(to bottom right, \${primaryColor}, \${accentColor})\`}"
-          ></div>
-        </div>
-      </div>
-      
-      <div class="md:w-1/2 md:pl-12">
-        <h3 :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-2xl font-semibold mb-4">
-          Our Story
-        </h3>
-        <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}" class="mb-4">
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, velit vel bibendum bibendum, 
-          nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum.
-        </p>
-        <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}">
-          Nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum, 
-          nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum.
-        </p>
-      </div>
-    </div>
-  </section>
-</template>
-
-<script>
-export default {
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      required: true
-    },
-    primaryColor: {
-      type: String,
-      required: true
-    },
-    secondaryColor: {
-      type: String,
-      required: true
-    },
-    accentColor: {
-      type: String,
-      required: true
-    }
-  }
-}
-</script>`,
-
-    "src/pages/Contact.vue": `<template>
-  <section class="container mx-auto px-6 py-12">
-    <h2 
-      :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}"
-      :style="{color: primaryColor}"
-      class="text-3xl font-bold mb-12 text-center"
-    >
-      Contact Us
-    </h2>
-    
-    <div class="flex flex-col md:flex-row">
-      <div class="md:w-1/2 mb-8 md:mb-0 md:pr-8">
-        <form @submit.prevent="submitForm">
-          <div class="mb-4">
-            <label 
-              :class="{'text-gray-200': isDarkMode, 'text-gray-700': !isDarkMode}"
-              class="block mb-2"
-            >
-              Name
-            </label>
-            <input 
-              type="text"
-              v-model="formData.name"
-              :class="{
-                'bg-gray-700 border-gray-600 text-white focus:ring-blue-500': isDarkMode,
-                'bg-white border-gray-300 text-gray-900 focus:ring-blue-500': !isDarkMode
-              }"
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-              required
-            />
-          </div>
-          
-          <div class="mb-4">
-            <label 
-              :class="{'text-gray-200': isDarkMode, 'text-gray-700': !isDarkMode}"
-              class="block mb-2"
-            >
-              Email
-            </label>
-            <input 
-              type="email"
-              v-model="formData.email"
-              :class="{
-                'bg-gray-700 border-gray-600 text-white focus:ring-blue-500': isDarkMode,
-                'bg-white border-gray-300 text-gray-900 focus:ring-blue-500': !isDarkMode
-              }"
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-              required
-            />
-          </div>
-          
-          <div class="mb-4">
-            <label 
-              :class="{'text-gray-200': isDarkMode, 'text-gray-700': !isDarkMode}"
-              class="block mb-2"
-            >
-              Message
-            </label>
-            <textarea 
-              v-model="formData.message"
-              :class="{
-                'bg-gray-700 border-gray-600 text-white focus:ring-blue-500': isDarkMode,
-                'bg-white border-gray-300 text-gray-900 focus:ring-blue-500': !isDarkMode
-              }"
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2"
-              rows="5"
-              required
-            ></textarea>
-          </div>
-          
-          <button 
-            type="submit"
-            class="btn-primary"
-            :style="{backgroundColor: primaryColor}"
-          >
-            Send Message
-          </button>
-        </form>
-      </div>
-      
-      <div class="md:w-1/2 md:pl-8">
-        <div :class="{'bg-gray-800': isDarkMode, 'bg-white': !isDarkMode}" class="rounded-lg overflow-hidden shadow-lg p-6">
-          <h3 
-            :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}"
-            :style="{color: secondaryColor}"
-            class="text-xl font-semibold mb-4"
-          >
-            Get in Touch
-          </h3>
-          
-          <div class="space-y-4">
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mt-1">
-                <svg xmlns="http://www.w3.org/2000/svg" :class="{'text-gray-200': isDarkMode, 'text-gray-700': !isDarkMode}" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div class="ml-4">
-                <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}" class="text-sm">Email</p>
-                <p :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-base font-medium">
-                  contact@example.com
-                </p>
-              </div>
-            </div>
-            
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mt-1">
-                <svg xmlns="http://www.w3.org/2000/svg" :class="{'text-gray-200': isDarkMode, 'text-gray-700': !isDarkMode}" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </div>
-              <div class="ml-4">
-                <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}" class="text-sm">Phone</p>
-                <p :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-base font-medium">
-                  +1 (123) 456-7890
-                </p>
-              </div>
-            </div>
-            
-            <div class="flex items-start">
-              <div class="flex-shrink-0 mt-1">
-                <svg xmlns="http://www.w3.org/2000/svg" :class="{'text-gray-200': isDarkMode, 'text-gray-700': !isDarkMode}" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div class="ml-4">
-                <p :class="{'text-gray-300': isDarkMode, 'text-gray-600': !isDarkMode}" class="text-sm">Address</p>
-                <p :class="{'text-white': isDarkMode, 'text-gray-800': !isDarkMode}" class="text-base font-medium">
-                  123 Main Street, City, Country
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-</template>
-
-<script>
-export default {
-  data() {
-    return {
-      formData: {
-        name: '',
-        email: '',
-        message: ''
-      }
-    }
-  },
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      required: true
-    },
-    primaryColor: {
-      type: String,
-      required: true
-    },
-    secondaryColor: {
-      type: String,
-      required: true
-    },
-    accentColor: {
-      type: String,
-      required: true
-    }
-  },
-  methods: {
-    submitForm() {
-      alert('Form submitted!')
-      console.log(this.formData)
-      // Reset form
-      this.formData = {
-        name: '',
-        email: '',
-        message: ''
-      }
-    }
-  }
-}
-</script>`,
-
-    "src/assets/main.css": `:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.3s, color 0.3s;
-  margin: 0;
-  padding: 0;
-}
-
-.dark {
-  background-color: #121212;
-  color: #ffffff;
-}
-
-/* Custom utilities */
-.container {
-  width: 100%;
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: white;
-  background-color: var(--primary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background-color: var(--secondary-color);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: var(--secondary-color);
-  background-color: transparent;
-  border: 1px solid var(--secondary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.dark .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Router transitions */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-/* Animation utilities */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}`,
-
-    "README.md": `# ${template.name}
-
-${template.description}
-
-## Features
-
-- Built with Vue 3
-- Dark mode support
-- Responsive design for all device sizes
-- Modern UI components
-- Vue Router integration
-- Customizable theme colors
-
-## Getting Started
-
-1. Clone this repository
-2. Install dependencies: \`npm install\` or \`yarn\`
-3. Start the development server: \`npm run dev\` or \`yarn dev\`
-4. Build for production: \`npm run build\` or \`yarn build\`
-
-## Project Structure
-
-\`\`\`
-src/
-├── assets/       # CSS and other assets
-├── components/   # UI components
-├── pages/        # Page components
-└── App.vue       # Root component
-\`\`\`
-
-## Customization
-
-You can customize the theme colors by editing the CSS variables in \`src/assets/main.css\`:
-
-\`\`\`css
-:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-\`\`\`
-
-## Tech Stack
-
-${template.techStack.join(', ')}
-
-## License
-
-MIT
-`
-  };
-}
-
-// Generate basic HTML/CSS/JS template
-function generateBasicTemplate(template: Template, themeColors: any): Record<string, string> {
-  return {
-    "index.html": `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${template.name}</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
-  <link rel="stylesheet" href="./styles/main.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-</head>
-<body class="bg-gray-100 font-sans">
-  <!-- Header -->
-  <header class="bg-white shadow-md dark-header">
-    <div class="container mx-auto px-6 py-4">
-      <div class="flex justify-between items-center">
-        <div class="flex items-center">
-          <a href="#" class="text-2xl font-bold text-gray-800 dark-text" style="color: ${themeColors.primary}">
-            ${template.name}
-          </a>
-        </div>
-        
-        <div class="hidden md:flex items-center space-x-8">
-          <a href="#home" class="text-gray-800 hover:text-gray-600 transition dark-text">Home</a>
-          <a href="#features" class="text-gray-800 hover:text-gray-600 transition dark-text">Features</a>
-          <a href="#about" class="text-gray-800 hover:text-gray-600 transition dark-text">About</a>
-          <a href="#contact" class="text-gray-800 hover:text-gray-600 transition dark-text">Contact</a>
-        </div>
-        
-        <div class="flex items-center space-x-4">
-          <button id="darkModeToggle" class="p-2 rounded-full hover:bg-gray-200">
-            <svg xmlns="http://www.w3.org/2000/svg" id="darkModeIcon" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-            <svg xmlns="http://www.w3.org/2000/svg" id="lightModeIcon" class="h-6 w-6 text-yellow-300 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </button>
-          
-          <button id="mobileMenuToggle" class="md:hidden focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-800 dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <!-- Mobile Menu -->
-      <div id="mobileMenu" class="md:hidden mt-3 space-y-2 hidden">
-        <a href="#home" class="block py-2 px-4 text-gray-800 hover:bg-gray-200 dark-text dark-hover">Home</a>
-        <a href="#features" class="block py-2 px-4 text-gray-800 hover:bg-gray-200 dark-text dark-hover">Features</a>
-        <a href="#about" class="block py-2 px-4 text-gray-800 hover:bg-gray-200 dark-text dark-hover">About</a>
-        <a href="#contact" class="block py-2 px-4 text-gray-800 hover:bg-gray-200 dark-text dark-hover">Contact</a>
-      </div>
-    </div>
-  </header>
-  
-  <main>
-    <!-- Home Section -->
-    <section id="home" class="container mx-auto px-6 py-12">
-      <div class="flex flex-col md:flex-row items-center">
-        <div class="md:w-1/2 mb-8 md:mb-0">
-          <h1 class="text-4xl md:text-5xl font-bold mb-6 text-gray-800 dark-text" style="color: ${themeColors.primary}">
-            Welcome to ${template.name}
-          </h1>
-          <p class="text-lg mb-6 text-gray-600 dark-text-secondary">
-            ${template.description}
-          </p>
-          <div class="flex space-x-4">
-            <button class="btn-primary" style="background-color: ${themeColors.primary}">
-              Get Started
-            </button>
-            <button class="btn-secondary" style="border-color: ${themeColors.secondary}; color: ${themeColors.secondary}">
-              Learn More
-            </button>
-          </div>
-        </div>
-        <div class="md:w-1/2">
-          <div class="rounded-lg shadow-xl overflow-hidden bg-white dark-card">
-            <div class="h-64 bg-gradient-to-r" style="background: linear-gradient(to right, ${themeColors.primary}, ${themeColors.secondary})"></div>
-            <div class="p-6">
-              <h3 class="text-xl font-bold mb-2 text-gray-800 dark-text">
-                Beautiful Design
-              </h3>
-              <p class="text-gray-600 dark-text-secondary">
-                This template includes a beautiful design with customizable colors and components.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <!-- Features Section -->
-    <section id="features" class="container mx-auto px-6 py-12">
-      <h2 class="text-3xl font-bold mb-12 text-center text-gray-800 dark-text" style="color: ${themeColors.primary}">
-        Features
-      </h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="p-6 rounded-lg shadow-md bg-white dark-card">
-          <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background-color: ${themeColors.primary}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold mb-2 text-gray-800 dark-text">
-            Fast Performance
-          </h3>
-          <p class="text-gray-600 dark-text-secondary">
-            Optimized for speed and efficiency with vanilla JavaScript.
-          </p>
-        </div>
-        
-        <div class="p-6 rounded-lg shadow-md bg-white dark-card">
-          <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background-color: ${themeColors.secondary}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold mb-2 text-gray-800 dark-text">
-            Beautiful UI
-          </h3>
-          <p class="text-gray-600 dark-text-secondary">
-            Modern and clean UI components with responsive design.
-          </p>
-        </div>
-        
-        <div class="p-6 rounded-lg shadow-md bg-white dark-card">
-          <div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background-color: ${themeColors.accent}">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-            </svg>
-          </div>
-          <h3 class="text-xl font-semibold mb-2 text-gray-800 dark-text">
-            Customizable
-          </h3>
-          <p class="text-gray-600 dark-text-secondary">
-            Easy to customize with CSS variables and simple JavaScript.
-          </p>
-        </div>
-      </div>
-    </section>
-    
-    <!-- About Section -->
-    <section id="about" class="container mx-auto px-6 py-12">
-      <h2 class="text-3xl font-bold mb-12 text-center text-gray-800 dark-text" style="color: ${themeColors.primary}">
-        About Us
-      </h2>
-      
-      <div class="flex flex-col md:flex-row items-center">
-        <div class="md:w-1/2 mb-8 md:mb-0">
-          <div class="rounded-lg shadow-xl overflow-hidden">
-            <div class="h-64 bg-gradient-to-br" style="background: linear-gradient(to bottom right, ${themeColors.primary}, ${themeColors.accent})"></div>
-          </div>
-        </div>
-        
-        <div class="md:w-1/2 md:pl-12">
-          <h3 class="text-2xl font-semibold mb-4 text-gray-800 dark-text">
-            Our Story
-          </h3>
-          <p class="mb-4 text-gray-600 dark-text-secondary">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, velit vel bibendum bibendum, 
-            nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum.
-          </p>
-          <p class="text-gray-600 dark-text-secondary">
-            Nunc bibendum nunc, vel bibendum nunc nisl vel bibendum. Sed euismod, velit vel bibendum bibendum, 
-            nisl nunc bibendum nunc, vel bibendum nunc nisl vel bibendum.
-          </p>
-        </div>
-      </div>
-    </section>
-    
-    <!-- Contact Section -->
-    <section id="contact" class="container mx-auto px-6 py-12">
-      <h2 class="text-3xl font-bold mb-12 text-center text-gray-800 dark-text" style="color: ${themeColors.primary}">
-        Contact Us
-      </h2>
-      
-      <div class="flex flex-col md:flex-row">
-        <div class="md:w-1/2 mb-8 md:mb-0 md:pr-8">
-          <form id="contactForm">
-            <div class="mb-4">
-              <label class="block mb-2 text-gray-700 dark-text">Name</label>
-              <input type="text" id="name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 dark-input" required>
-            </div>
-            
-            <div class="mb-4">
-              <label class="block mb-2 text-gray-700 dark-text">Email</label>
-              <input type="email" id="email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 dark-input" required>
-            </div>
-            
-            <div class="mb-4">
-              <label class="block mb-2 text-gray-700 dark-text">Message</label>
-              <textarea id="message" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 dark-input" rows="5" required></textarea>
-            </div>
-            
-            <button type="submit" class="btn-primary" style="background-color: ${themeColors.primary}">
-              Send Message
-            </button>
-          </form>
-        </div>
-        
-        <div class="md:w-1/2 md:pl-8">
-          <div class="rounded-lg overflow-hidden shadow-lg p-6 bg-white dark-card">
-            <h3 class="text-xl font-semibold mb-4 text-gray-800 dark-text" style="color: ${themeColors.secondary}">
-              Get in Touch
-            </h3>
-            
-            <div class="space-y-4">
-              <div class="flex items-start">
-                <div class="flex-shrink-0 mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm text-gray-600 dark-text-secondary">Email</p>
-                  <p class="text-base font-medium text-gray-800 dark-text">
-                    contact@example.com
-                  </p>
-                </div>
-              </div>
-              
-              <div class="flex items-start">
-                <div class="flex-shrink-0 mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm text-gray-600 dark-text-secondary">Phone</p>
-                  <p class="text-base font-medium text-gray-800 dark-text">
-                    +1 (123) 456-7890
-                  </p>
-                </div>
-              </div>
-              
-              <div class="flex items-start">
-                <div class="flex-shrink-0 mt-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-700 dark-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <div class="ml-4">
-                  <p class="text-sm text-gray-600 dark-text-secondary">Address</p>
-                  <p class="text-base font-medium text-gray-800 dark-text">
-                    123 Main Street, City, Country
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-  
-  <footer class="py-8 mt-12 bg-gray-100 text-gray-700 dark-footer">
-    <div class="container mx-auto px-6">
-      <div class="flex flex-col md:flex-row justify-between items-center">
-        <div class="mb-6 md:mb-0">
-          <a href="#" class="text-xl font-bold" style="color: ${themeColors.primary}">
-            ${template.name}
-          </a>
-          <p class="mt-2 text-sm text-gray-500 dark-text-tertiary">
-            &copy; <span id="currentYear"></span> All Rights Reserved
-          </p>
-        </div>
-        
-        <div class="flex space-x-6">
-          <a href="#" class="hover:text-gray-400 transition-colors dark-text">Terms</a>
-          <a href="#" class="hover:text-gray-400 transition-colors dark-text">Privacy</a>
-          <a href="#" class="hover:text-gray-400 transition-colors dark-text">Support</a>
-        </div>
-      </div>
-    </div>
-  </footer>
-  
-  <script src="./src/main.js"></script>
-</body>
-</html>`,
-
-    "styles/main.css": `:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.3s, color 0.3s;
-}
-
-body.dark-mode {
-  background-color: #1a1a1a;
-  color: #ffffff;
-}
-
-.dark-header {
-  transition: background-color 0.3s, color 0.3s;
-}
-
-body.dark-mode .dark-header {
-  background-color: #2a2a2a;
-}
-
-body.dark-mode .dark-footer {
-  background-color: #2a2a2a;
-}
-
-body.dark-mode .dark-text {
-  color: #ffffff;
-}
-
-body.dark-mode .dark-text-secondary {
-  color: #cccccc;
-}
-
-body.dark-mode .dark-text-tertiary {
-  color: #999999;
-}
-
-body.dark-mode .dark-card {
-  background-color: #2a2a2a;
-}
-
-body.dark-mode .dark-hover:hover {
-  background-color: #3a3a3a;
-}
-
-body.dark-mode .dark-input {
-  background-color: #333;
-  border-color: #555;
-  color: white;
-}
-
-body.dark-mode .dark-input:focus {
-  border-color: var(--primary-color);
-}
-
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: white;
-  background-color: var(--primary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  background-color: var(--secondary-color);
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1.5rem;
-  font-weight: 500;
-  color: var(--secondary-color);
-  background-color: transparent;
-  border: 1px solid var(--secondary-color);
-  border-radius: 0.375rem;
-  transition: background-color 0.3s;
-  cursor: pointer;
-}
-
-.btn-secondary:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-body.dark-mode .btn-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Animation utilities */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-in-out;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}`,
-
-    "src/main.js": `// Main JavaScript file
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('${template.name} application loaded');
-  
-  // Set current year in footer
-  document.getElementById('currentYear').textContent = new Date().getFullYear();
-  
-  // Mobile menu toggle
-  const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-  const mobileMenu = document.getElementById('mobileMenu');
-  
-  mobileMenuToggle.addEventListener('click', function() {
-    mobileMenu.classList.toggle('hidden');
-  });
-  
-  // Dark mode toggle
-  const darkModeToggle = document.getElementById('darkModeToggle');
-  const darkModeIcon = document.getElementById('darkModeIcon');
-  const lightModeIcon = document.getElementById('lightModeIcon');
-  const body = document.body;
-  
-  // Check for saved dark mode preference or system preference
-  const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
-  
-  // Set initial dark mode state
-  if (isDarkMode) {
-    body.classList.add('dark-mode');
-    darkModeIcon.classList.add('hidden');
-    lightModeIcon.classList.remove('hidden');
-  }
-  
-  darkModeToggle.addEventListener('click', function() {
-    body.classList.toggle('dark-mode');
-    darkModeIcon.classList.toggle('hidden');
-    lightModeIcon.classList.toggle('hidden');
-    
-    // Save preference to localStorage
-    localStorage.setItem('darkMode', body.classList.contains('dark-mode'));
-  });
-  
-  // Handle contact form submission
-  const contactForm = document.getElementById('contactForm');
-  
-  contactForm.addEventListener('submit', function(event) {
-    event.preventDefault();
-    
-    const nameInput = document.getElementById('name');
-    const emailInput = document.getElementById('email');
-    const messageInput = document.getElementById('message');
-    
-    console.log('Form submitted', {
-      name: nameInput.value,
-      email: emailInput.value,
-      message: messageInput.value
-    });
-    
-    alert('Message sent successfully!');
-    contactForm.reset();
-  });
-  
-  // Smooth scrolling for anchor links
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
-      e.preventDefault();
-      
-      const targetId = this.getAttribute('href');
-      if (targetId === '#') return;
-      
-      const targetElement = document.querySelector(targetId);
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-        
-        // Close mobile menu if open
-        if (!mobileMenu.classList.contains('hidden')) {
-          mobileMenu.classList.add('hidden');
-        }
-      }
-    });
-  });
-});`,
-
-    "README.md": `# ${template.name}
-
-${template.description}
-
-## Features
-
-- Responsive design for all device sizes
-- Dark mode toggle with preference saving
-- Smooth scroll navigation
-- Contact form with client-side validation
-- Beautiful UI with customizable colors
-
-## Getting Started
-
-1. Clone this repository
-2. Open index.html in your browser
-3. For a production deployment, consider using a static file server
-
-## Customization
-
-You can customize the theme colors by editing the CSS variables in \`styles/main.css\`:
-
-\`\`\`css
-:root {
-  --primary-color: ${themeColors.primary};
-  --secondary-color: ${themeColors.secondary};
-  --accent-color: ${themeColors.accent};
-}
-\`\`\`
-
-## Tech Stack
-
-HTML, CSS, and JavaScript
-
-## License
-
-MIT
-`
-  };
-}
-
-// Helper function to generate package.json content based on tech stack
-function generatePackageJson(projectName: string, description: string, techStack: string[]): string {
-  const dependencies: Record<string, string> = {};
-  const devDependencies: Record<string, string> = {
-    "vite": "^5.0.0"
-  };
-  
-  // Add dependencies based on selected tech stacks
-  if (techStack.includes('react')) {
-    dependencies['react'] = '^18.2.0';
-    dependencies['react-dom'] = '^18.2.0';
-    dependencies['react-router-dom'] = '^6.18.0';
-    devDependencies['@vitejs/plugin-react'] = '^4.2.0';
-  }
-  
-  if (techStack.includes('vue')) {
-    dependencies['vue'] = '^3.3.8';
-    dependencies['vue-router'] = '^4.2.5';
-    devDependencies['@vitejs/plugin-vue'] = '^4.5.0';
-  }
-  
-  if (techStack.includes('typescript')) {
-    dependencies['typescript'] = '^5.2.2';
-    devDependencies['@types/react'] = '^18.2.37';
-    devDependencies['@types/react-dom'] = '^18.2.15';
-  }
-  
-  if (techStack.includes('tailwind')) {
-    devDependencies['tailwindcss'] = '^3.3.5';
-    devDependencies['postcss'] = '^8.4.31';
-    devDependencies['autoprefixer'] = '^10.4.16';
-  }
-  
-  if (techStack.includes('node')) {
-    dependencies['express'] = '^4.18.2';
-    dependencies['cors'] = '^2.8.5';
-    dependencies['dotenv'] = '^16.3.1';
-  }
-  
-  if (techStack.includes('alpine')) {
-    dependencies['alpinejs'] = '^3.13.2';
-  }
-  
-  // Generate scripts based on tech stack
-  const scripts: Record<string, string> = {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  };
-  
-  if (techStack.includes('typescript')) {
-    scripts['dev'] = 'vite';
-    scripts['build'] = 'tsc && vite build';
-  }
-  
-  if (techStack.includes('node')) {
-    scripts['server'] = 'node server.js';
-    scripts['dev:full'] = 'concurrently "npm run dev" "npm run server"';
-    devDependencies['concurrently'] = '^8.2.2';
-  }
-  
-  return JSON.stringify({
-    name: projectName.toLowerCase().replace(/\s+/g, '-'),
-    private: true,
-    version: '1.0.0',
-    description,
-    type: 'module',
-    scripts,
-    dependencies,
-    devDependencies
-  }, null, 2);
+  return Object.entries(deps)
+    .map(([name, version]) => `"${name}": ${version}`)
+    .join(',\n    ');
 }
 
 // Helper function to get theme colors based on selection
@@ -3185,10 +470,2808 @@ function getThemeColors(theme?: string): { primary: string, secondary: string, a
       return { primary: '#ea580c', secondary: '#c2410c', accent: '#fb923c' };
     case 'pink':
       return { primary: '#db2777', secondary: '#be185d', accent: '#f472b6' };
-    case 'purple':
-      return { primary: '#8b5cf6', secondary: '#7c3aed', accent: '#a78bfa' };
-    default: // Default blue
-      return { primary: '#2563eb', secondary: '#1d4ed8', accent: '#60a5fa' };
+    default: // Purple/Blue
+      return { primary: '#7c3aed', secondary: '#6d28d9', accent: '#a78bfa' };
   }
 }
 
+// Technical stacks for the AI generator
+export interface PageDescription {
+  name: string;
+  path: string;
+  description: string;
+}
+
+export const TECH_STACK_OPTIONS = [
+  "react", 
+  "vue", 
+  "alpine", 
+  "typescript", 
+  "tailwind",
+  "node"
+];
+
+// Function to generate custom projects
+export const generateCustomProject = async (
+  projectName: string,
+  projectDescription: string,
+  selectedTechStacks: string[],
+  selectedTheme: string = 'blue'
+): Promise<string> => {
+  try {
+    // Create a new JSZip instance
+    const zip = new JSZip();
+    const themeColors = getThemeColors(selectedTheme);
+    
+    // Determine which template files to generate based on the selected tech stack
+    if (selectedTechStacks.includes('react')) {
+      // React project structure
+      createReactProject(zip, projectName, projectDescription, selectedTechStacks, themeColors);
+    } else if (selectedTechStacks.includes('vue')) {
+      // Vue project structure
+      createVueProject(zip, projectName, projectDescription, selectedTechStacks, themeColors);
+    } else if (selectedTechStacks.includes('alpine')) {
+      // Alpine.js project structure
+      createAlpineProject(zip, projectName, projectDescription, selectedTechStacks, themeColors);
+    } else {
+      // Default to a simple HTML/CSS/JS project
+      createBasicProject(zip, projectName, projectDescription, selectedTechStacks, themeColors);
+    }
+    
+    // Add README
+    zip.file('README.md', `# ${projectName}
+
+${projectDescription}
+
+## About This Project
+
+This project was generated using the ThynkAI Generator with the following configuration:
+
+- Project Name: ${projectName}
+- Theme: ${selectedTheme}
+- Tech Stack: ${selectedTechStacks.join(', ')}
+
+## Getting Started
+
+1. Extract the ZIP file
+2. Open the folder in your favorite code editor
+3. Install dependencies with \`npm install\` or \`yarn\`
+4. Start the development server with \`npm run dev\` or \`yarn dev\`
+
+## Features
+
+- Responsive design for all device sizes
+- Modern UI components
+- ${selectedTechStacks.includes('tailwind') ? 'Styled with Tailwind CSS' : 'Custom styling'}
+- ${selectedTechStacks.includes('typescript') ? 'Type safety with TypeScript' : 'JavaScript for logic'}
+- Easy to customize and extend
+
+## License
+
+MIT
+`);
+    
+    // Generate the zip file
+    const zipContent = await zip.generateAsync({ type: "blob" });
+    
+    // Return the download URL
+    return URL.createObjectURL(zipContent);
+  } catch (error) {
+    console.error("Error generating custom project:", error);
+    throw new Error("Failed to generate custom project");
+  }
+};
+
+// Helper function to create a React project
+function createReactProject(
+  zip: JSZip, 
+  projectName: string, 
+  projectDescription: string, 
+  techStacks: string[],
+  themeColors: { primary: string, secondary: string, accent: string }
+): void {
+  // Create basic project structure
+  const src = zip.folder("src");
+  src?.folder("components");
+  src?.folder("pages");
+  src?.folder("hooks");
+  src?.folder("context");
+  src?.folder("assets");
+  
+  const isTypescript = techStacks.includes('typescript');
+  const fileExt = isTypescript ? 'tsx' : 'jsx';
+  const indexFileExt = isTypescript ? 'tsx' : 'jsx';
+  
+  // Create index.html
+  zip.file("index.html", `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.${indexFileExt}"></script>
+</body>
+</html>
+`);
+
+  // Create package.json
+  const packageJson = {
+    name: projectName.toLowerCase().replace(/\s+/g, '-'),
+    private: true,
+    version: '0.0.0',
+    type: 'module',
+    scripts: {
+      dev: 'vite',
+      build: 'vite build',
+      preview: 'vite preview'
+    },
+    dependencies: {
+      'react': '^18.2.0',
+      'react-dom': '^18.2.0',
+      'react-router-dom': '^6.14.2',
+      ...(techStacks.includes('tailwind') ? {} : { '@emotion/styled': '^11.11.0' })
+    },
+    devDependencies: {
+      '@vitejs/plugin-react': '^4.0.4',
+      'vite': '^4.4.9',
+      ...(techStacks.includes('typescript') ? {
+        '@types/react': '^18.2.20',
+        '@types/react-dom': '^18.2.7',
+        'typescript': '^5.1.6'
+      } : {}),
+      ...(techStacks.includes('tailwind') ? {
+        'autoprefixer': '^10.4.14',
+        'postcss': '^8.4.27',
+        'tailwindcss': '^3.3.3'
+      } : {})
+    }
+  };
+  
+  zip.file("package.json", JSON.stringify(packageJson, null, 2));
+  
+  // Add Vite config
+  zip.file("vite.config.js", `
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+`);
+  
+  // Add TypeScript configuration if needed
+  if (isTypescript) {
+    zip.file("tsconfig.json", `
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
+`);
+    
+    zip.file("tsconfig.node.json", `
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+`);
+  }
+  
+  // Add Tailwind config if needed
+  if (techStacks.includes('tailwind')) {
+    zip.file("tailwind.config.js", `
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: "${themeColors.primary}",
+        secondary: "${themeColors.secondary}",
+        accent: "${themeColors.accent}",
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+    },
+  },
+  plugins: [],
+}
+`);
+    
+    zip.file("postcss.config.js", `
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+`);
+  }
+  
+  // Main entry file
+  src?.file(`main.${indexFileExt}`, `
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.${fileExt}'
+${techStacks.includes('tailwind') ? "import './index.css'" : "import './styles.css'"}
+
+ReactDOM.createRoot(document.getElementById('root')${isTypescript ? " as HTMLElement" : ""}).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+`);
+  
+  // App component
+  src?.file(`App.${fileExt}`, `
+import { useState } from 'react'
+${isTypescript ? "import React from 'react'" : ""}
+import Header from './components/Header.${fileExt}'
+import Footer from './components/Footer.${fileExt}'
+import HomePage from './pages/HomePage.${fileExt}'
+
+${isTypescript ? "const App: React.FC = () => {" : "function App() {"}
+  const [darkMode, setDarkMode] = useState(false)
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev)
+  }
+
+  return (
+    <div className={${techStacks.includes('tailwind') ? 
+      '`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-900"}`' : 
+      '`app ${darkMode ? "dark" : ""}`'}}>
+      <Header darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <main className=${techStacks.includes('tailwind') ? 
+        '"container mx-auto px-4 py-8"' : 
+        '"main-content"'}>
+        <HomePage />
+      </main>
+      <Footer darkMode={darkMode} />
+    </div>
+  )
+}
+
+export default App
+`);
+  
+  // Add CSS
+  if (techStacks.includes('tailwind')) {
+    src?.file("index.css", `
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-opacity-90;
+  }
+  .btn-secondary {
+    @apply bg-secondary text-white hover:bg-opacity-90;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+  }
+}
+`);
+  } else {
+    src?.file("styles.css", `
+:root {
+  --primary-color: ${themeColors.primary};
+  --secondary-color: ${themeColors.secondary};
+  --accent-color: ${themeColors.accent};
+  --light-bg: #f9fafb;
+  --dark-bg: #111827;
+  --light-text: #1f2937;
+  --dark-text: #f9fafb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+}
+
+.app {
+  min-height: 100vh;
+  background-color: var(--light-bg);
+  color: var(--light-text);
+}
+
+.app.dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.app.dark .card {
+  background-color: #1f2937;
+}
+`);
+  }
+  
+  // Header component
+  src?.folder("components")?.file(`Header.${fileExt}`, `
+${isTypescript ? "import React from 'react'" : ""}
+
+${isTypescript ? 
+  "interface HeaderProps {\n  darkMode: boolean;\n  toggleDarkMode: () => void;\n}\n\nconst Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {" : 
+  "function Header({ darkMode, toggleDarkMode }) {"}
+
+  return (
+    <header className=${techStacks.includes('tailwind') ? 
+      '`py-4 shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`' : 
+      '`header ${darkMode ? "dark" : ""}`'}>
+      <div className=${techStacks.includes('tailwind') ? '"container mx-auto px-4 flex justify-between items-center"' : '"header-container"'}>
+        <div className=${techStacks.includes('tailwind') ? '"text-xl font-bold"' : '"logo"'}>
+          ${projectName}
+        </div>
+        
+        <nav className=${techStacks.includes('tailwind') ? '"flex items-center space-x-6"' : '"nav-links"'}>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"hover:text-primary"' : '""'}>Home</a>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"hover:text-primary"' : '""'}>Features</a>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"hover:text-primary"' : '""'}>About</a>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"hover:text-primary"' : '""'}>Contact</a>
+        </nav>
+        
+        <button 
+          onClick={toggleDarkMode}
+          className=${techStacks.includes('tailwind') ? 
+            '`p-2 rounded-full ${darkMode ? "bg-gray-700" : "bg-gray-100"}`' : 
+            '"theme-toggle-btn"'}
+        >
+          {darkMode ? "🌙" : "☀️"}
+        </button>
+      </div>
+    </header>
+  )
+}
+
+export default Header
+`);
+
+  // Footer component
+  src?.folder("components")?.file(`Footer.${fileExt}`, `
+${isTypescript ? "import React from 'react'" : ""}
+
+${isTypescript ? 
+  "interface FooterProps {\n  darkMode: boolean;\n}\n\nconst Footer: React.FC<FooterProps> = ({ darkMode }) => {" : 
+  "function Footer({ darkMode }) {"}
+
+  return (
+    <footer className=${techStacks.includes('tailwind') ? 
+      '`py-6 mt-8 border-t ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`' : 
+      '`footer ${darkMode ? "dark" : ""}`'}>
+      <div className=${techStacks.includes('tailwind') ? '"container mx-auto px-4 text-center"' : '"footer-container"'}>
+        <p className=${techStacks.includes('tailwind') ? '"text-sm text-gray-500 dark:text-gray-400"' : '"copyright"'}>
+          &copy; {new Date().getFullYear()} ${projectName}. All rights reserved.
+        </p>
+        <div className=${techStacks.includes('tailwind') ? '"mt-4 flex justify-center space-x-4"' : '"social-links"'}>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"text-gray-400 hover:text-primary"' : '""'}>Twitter</a>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"text-gray-400 hover:text-primary"' : '""'}>GitHub</a>
+          <a href="#" className=${techStacks.includes('tailwind') ? '"text-gray-400 hover:text-primary"' : '""'}>LinkedIn</a>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+export default Footer
+`);
+
+  // Home page component
+  src?.folder("pages")?.file(`HomePage.${fileExt}`, `
+${isTypescript ? "import React from 'react'" : ""}
+
+${isTypescript ? "const HomePage: React.FC = () => {" : "function HomePage() {"}
+  return (
+    <div className=${techStacks.includes('tailwind') ? '""' : '"home-page"'}>
+      <section className=${techStacks.includes('tailwind') ? 
+        '"py-12 text-center"' : 
+        '"hero-section"'}>
+        <h1 className=${techStacks.includes('tailwind') ? 
+          '"text-4xl font-bold mb-6"' : 
+          '"hero-title"'}>
+          Welcome to ${projectName}
+        </h1>
+        <p className=${techStacks.includes('tailwind') ? 
+          '"text-xl max-w-2xl mx-auto mb-8"' : 
+          '"hero-subtitle"'}>
+          ${projectDescription || 'A modern web application built with React'}
+        </p>
+        <div className=${techStacks.includes('tailwind') ? 
+          '"flex justify-center gap-4"' : 
+          '"cta-buttons"'}>
+          <button className=${techStacks.includes('tailwind') ? 
+            '"btn btn-primary"' : 
+            '"btn btn-primary"'}>Get Started</button>
+          <button className=${techStacks.includes('tailwind') ? 
+            '"btn bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"' : 
+            '"btn btn-secondary"'}>Learn More</button>
+        </div>
+      </section>
+
+      <section className=${techStacks.includes('tailwind') ? 
+        '"py-12"' : 
+        '"features-section"'}>
+        <h2 className=${techStacks.includes('tailwind') ? 
+          '"text-3xl font-bold text-center mb-12"' : 
+          '"section-title"'}>Key Features</h2>
+        <div className=${techStacks.includes('tailwind') ? 
+          '"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"' : 
+          '"features-grid"'}>
+          <div className=${techStacks.includes('tailwind') ? '"card"' : '"card"'}>
+            <h3 className=${techStacks.includes('tailwind') ? 
+              '"text-xl font-semibold mb-3"' : 
+              '"feature-title"'}>Modern Stack</h3>
+            <p>Built with the latest web technologies for better performance and developer experience.</p>
+          </div>
+          <div className=${techStacks.includes('tailwind') ? '"card"' : '"card"'}>
+            <h3 className=${techStacks.includes('tailwind') ? 
+              '"text-xl font-semibold mb-3"' : 
+              '"feature-title"'}>Responsive Design</h3>
+            <p>Looks great on any device, from mobile phones to desktop computers.</p>
+          </div>
+          <div className=${techStacks.includes('tailwind') ? '"card"' : '"card"'}>
+            <h3 className=${techStacks.includes('tailwind') ? 
+              '"text-xl font-semibold mb-3"' : 
+              '"feature-title"'}>Customizable</h3>
+            <p>Easy to customize to match your brand and specific requirements.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default HomePage
+`);
+}
+
+// Helper function to create a Vue project
+function createVueProject(
+  zip: JSZip, 
+  projectName: string, 
+  projectDescription: string, 
+  techStacks: string[],
+  themeColors: { primary: string, secondary: string, accent: string }
+): void {
+  // Create basic project structure
+  const src = zip.folder("src");
+  src?.folder("components");
+  src?.folder("views");
+  src?.folder("assets");
+  
+  const isTypescript = techStacks.includes('typescript');
+  const fileExt = isTypescript ? '.ts' : '.js';
+  const componentExt = isTypescript ? '.vue' : '.vue';
+  
+  // Create index.html
+  zip.file("index.html", `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main${fileExt}"></script>
+</body>
+</html>
+`);
+
+  // Create package.json
+  const packageJson = {
+    name: projectName.toLowerCase().replace(/\s+/g, '-'),
+    private: true,
+    version: '0.0.0',
+    type: 'module',
+    scripts: {
+      dev: 'vite',
+      build: 'vite build',
+      preview: 'vite preview'
+    },
+    dependencies: {
+      'vue': '^3.3.4',
+      'vue-router': '^4.2.4',
+      ...(techStacks.includes('typescript') ? {} : {})
+    },
+    devDependencies: {
+      '@vitejs/plugin-vue': '^4.2.3',
+      'vite': '^4.4.9',
+      ...(techStacks.includes('typescript') ? {
+        '@types/node': '^20.4.9',
+        '@vue/tsconfig': '^0.4.0',
+        'typescript': '^5.1.6',
+        'vue-tsc': '^1.8.8'
+      } : {}),
+      ...(techStacks.includes('tailwind') ? {
+        'autoprefixer': '^10.4.14',
+        'postcss': '^8.4.27',
+        'tailwindcss': '^3.3.3'
+      } : {})
+    }
+  };
+  
+  zip.file("package.json", JSON.stringify(packageJson, null, 2));
+  
+  // Add Vite config
+  zip.file(`vite.config${isTypescript ? '.ts' : '.js'}`, `
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+${isTypescript ? "import { fileURLToPath, URL } from 'node:url'" : ""}
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [vue()],
+  ${isTypescript ? `
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  }` : ''}
+})
+`);
+  
+  // Add TypeScript configuration if needed
+  if (isTypescript) {
+    zip.file("tsconfig.json", `
+{
+  "extends": "@vue/tsconfig/tsconfig.web.json",
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}
+`);
+    
+    zip.file("tsconfig.node.json", `
+{
+  "extends": "@vue/tsconfig/tsconfig.node.json",
+  "include": ["vite.config.ts"],
+  "compilerOptions": {
+    "composite": true,
+    "types": ["node"]
+  }
+}
+`);
+    
+    src?.file("env.d.ts", `/// <reference types="vite/client" />`);
+  }
+  
+  // Add Tailwind config if needed
+  if (techStacks.includes('tailwind')) {
+    zip.file("tailwind.config.js", `
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: "${themeColors.primary}",
+        secondary: "${themeColors.secondary}",
+        accent: "${themeColors.accent}",
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+    },
+  },
+  plugins: [],
+}
+`);
+    
+    zip.file("postcss.config.js", `
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+`);
+  }
+  
+  // Main entry file
+  src?.file(`main${fileExt}`, `
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router${fileExt}'
+${techStacks.includes('tailwind') ? "import './assets/tailwind.css'" : "import './assets/main.css'"}
+
+const app = createApp(App)
+app.use(router)
+app.mount('#app')
+`);
+
+  // Router
+  src?.file(`router${fileExt}`, `
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from './views/Home.vue'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: Home
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('./views/About.vue')
+    }
+  ]
+})
+
+export default router
+`);
+  
+  // App component
+  src?.file("App.vue", `
+<template>
+  <div id="app" :class="{ 'dark': darkMode }">
+    <TheHeader :dark-mode="darkMode" @toggle-dark-mode="toggleDarkMode" />
+    <main class="${techStacks.includes('tailwind') ? 'container mx-auto px-4 py-8' : 'main-content'}">
+      <router-view />
+    </main>
+    <TheFooter :dark-mode="darkMode" />
+  </div>
+</template>
+
+<script${isTypescript ? " lang=\"ts\"" : ""}>
+import { defineComponent, ref } from 'vue'
+import TheHeader from './components/TheHeader.vue'
+import TheFooter from './components/TheFooter.vue'
+
+export default defineComponent({
+  name: 'App',
+  components: {
+    TheHeader,
+    TheFooter
+  },
+  setup() {
+    const darkMode = ref(false)
+
+    const toggleDarkMode = () => {
+      darkMode.value = !darkMode.value
+    }
+
+    return {
+      darkMode,
+      toggleDarkMode
+    }
+  }
+})
+</script>
+
+${techStacks.includes('tailwind') ? '' : 
+`<style>
+:root {
+  --primary-color: ${themeColors.primary};
+  --secondary-color: ${themeColors.secondary};
+  --accent-color: ${themeColors.accent};
+  --light-bg: #f9fafb;
+  --dark-bg: #111827;
+  --light-text: #1f2937;
+  --dark-text: #f9fafb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+}
+
+#app {
+  min-height: 100vh;
+  background-color: var(--light-bg);
+  color: var(--light-text);
+}
+
+#app.dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+#app.dark .card {
+  background-color: #1f2937;
+}
+</style>`}
+`);
+
+  // Add CSS
+  if (techStacks.includes('tailwind')) {
+    src?.folder("assets")?.file("tailwind.css", `
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-opacity-90;
+  }
+  .btn-secondary {
+    @apply bg-secondary text-white hover:bg-opacity-90;
+  }
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md p-6;
+  }
+}
+`);
+  } else {
+    src?.folder("assets")?.file("main.css", `
+:root {
+  --primary-color: ${themeColors.primary};
+  --secondary-color: ${themeColors.secondary};
+  --accent-color: ${themeColors.accent};
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+`);
+  }
+  
+  // Header component
+  src?.folder("components")?.file("TheHeader.vue", `
+<template>
+  <header :class="['header', { 'dark': darkMode }]">
+    <div class="${techStacks.includes('tailwind') ? 
+      'container mx-auto px-4 flex justify-between items-center' : 
+      'header-container'}">
+      <div class="${techStacks.includes('tailwind') ? 'text-xl font-bold' : 'logo'}">
+        ${projectName}
+      </div>
+      
+      <nav class="${techStacks.includes('tailwind') ? 'flex items-center space-x-6' : 'nav-links'}">
+        <router-link to="/" class="${techStacks.includes('tailwind') ? 'hover:text-primary' : ''}">Home</router-link>
+        <router-link to="/about" class="${techStacks.includes('tailwind') ? 'hover:text-primary' : ''}">About</router-link>
+        <a href="#features" class="${techStacks.includes('tailwind') ? 'hover:text-primary' : ''}">Features</a>
+        <a href="#contact" class="${techStacks.includes('tailwind') ? 'hover:text-primary' : ''}">Contact</a>
+      </nav>
+      
+      <button 
+        @click="$emit('toggle-dark-mode')"
+        class="${techStacks.includes('tailwind') ? 
+          'p-2 rounded-full transition-colors' : 
+          'theme-toggle-btn'}"
+        :class="${techStacks.includes('tailwind') ? 
+          'darkMode ? \'bg-gray-700\' : \'bg-gray-100\'' : 
+          ''}"
+      >
+        {{ darkMode ? "🌙" : "☀️" }}
+      </button>
+    </div>
+  </header>
+</template>
+
+<script${isTypescript ? " lang=\"ts\"" : ""}>
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'TheHeader',
+  props: {
+    darkMode: {
+      type: Boolean,
+      required: true
+    }
+  },
+  emits: ['toggle-dark-mode']
+})
+</script>
+
+${techStacks.includes('tailwind') ? 
+`<style scoped>
+header {
+  @apply py-4 shadow-md;
+}
+
+header.dark {
+  @apply bg-gray-800;
+}
+
+header:not(.dark) {
+  @apply bg-white;
+}
+</style>` : 
+`<style scoped>
+.header {
+  padding: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: white;
+}
+
+.header.dark {
+  background-color: #1f2937;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-links a:hover {
+  color: var(--primary-color);
+}
+
+.theme-toggle-btn {
+  padding: 0.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  background-color: #f3f4f6;
+}
+
+.header.dark .theme-toggle-btn {
+  background-color: #374151;
+}
+</style>`}
+`);
+
+  // Footer component
+  src?.folder("components")?.file("TheFooter.vue", `
+<template>
+  <footer :class="['footer', { 'dark': darkMode }]">
+    <div class="${techStacks.includes('tailwind') ? 'container mx-auto px-4 text-center' : 'footer-container'}">
+      <p class="${techStacks.includes('tailwind') ? 'text-sm text-gray-500 dark:text-gray-400' : 'copyright'}">
+        &copy; {{ currentYear }} ${projectName}. All rights reserved.
+      </p>
+      <div class="${techStacks.includes('tailwind') ? 'mt-4 flex justify-center space-x-4' : 'social-links'}">
+        <a href="#" class="${techStacks.includes('tailwind') ? 'text-gray-400 hover:text-primary' : ''}">Twitter</a>
+        <a href="#" class="${techStacks.includes('tailwind') ? 'text-gray-400 hover:text-primary' : ''}">GitHub</a>
+        <a href="#" class="${techStacks.includes('tailwind') ? 'text-gray-400 hover:text-primary' : ''}">LinkedIn</a>
+      </div>
+    </div>
+  </footer>
+</template>
+
+<script${isTypescript ? " lang=\"ts\"" : ""}>
+import { defineComponent, computed } from 'vue'
+
+export default defineComponent({
+  name: 'TheFooter',
+  props: {
+    darkMode: {
+      type: Boolean,
+      required: true
+    }
+  },
+  setup() {
+    const currentYear = computed(() => new Date().getFullYear())
+    
+    return {
+      currentYear
+    }
+  }
+})
+</script>
+
+${techStacks.includes('tailwind') ? 
+`<style scoped>
+footer {
+  @apply py-6 mt-8 border-t;
+}
+
+footer.dark {
+  @apply bg-gray-800 border-gray-700;
+}
+
+footer:not(.dark) {
+  @apply bg-white border-gray-200;
+}
+</style>` : 
+`<style scoped>
+.footer {
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+  background-color: white;
+}
+
+.footer.dark {
+  background-color: #1f2937;
+  border-top-color: #374151;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.copyright {
+  color: #6b7280;
+}
+
+.footer.dark .copyright {
+  color: #9ca3af;
+}
+
+.social-links {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.social-links a {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.social-links a:hover {
+  color: var(--primary-color);
+}
+
+.footer.dark .social-links a {
+  color: #9ca3af;
+}
+</style>`}
+`);
+
+  // Home view
+  src?.folder("views")?.file("Home.vue", `
+<template>
+  <div class="home">
+    <section class="${techStacks.includes('tailwind') ? 'py-12 text-center' : 'hero-section'}">
+      <h1 class="${techStacks.includes('tailwind') ? 'text-4xl font-bold mb-6' : 'hero-title'}">
+        Welcome to ${projectName}
+      </h1>
+      <p class="${techStacks.includes('tailwind') ? 'text-xl max-w-2xl mx-auto mb-8' : 'hero-subtitle'}">
+        ${projectDescription || 'A modern web application built with Vue.js'}
+      </p>
+      <div class="${techStacks.includes('tailwind') ? 'flex justify-center gap-4' : 'cta-buttons'}">
+        <button class="${techStacks.includes('tailwind') ? 'btn btn-primary' : 'btn btn-primary'}">
+          Get Started
+        </button>
+        <button class="${techStacks.includes('tailwind') ? 
+          'btn bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600' : 
+          'btn btn-secondary'}">
+          Learn More
+        </button>
+      </div>
+    </section>
+
+    <section id="features" class="${techStacks.includes('tailwind') ? 'py-12' : 'features-section'}">
+      <h2 class="${techStacks.includes('tailwind') ? 'text-3xl font-bold text-center mb-12' : 'section-title'}">
+        Key Features
+      </h2>
+      <div class="${techStacks.includes('tailwind') ? 
+        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8' : 
+        'features-grid'}">
+        <div class="${techStacks.includes('tailwind') ? 'card' : 'card'}">
+          <h3 class="${techStacks.includes('tailwind') ? 'text-xl font-semibold mb-3' : 'feature-title'}">
+            Modern Stack
+          </h3>
+          <p>Built with the latest web technologies for better performance and developer experience.</p>
+        </div>
+        <div class="${techStacks.includes('tailwind') ? 'card' : 'card'}">
+          <h3 class="${techStacks.includes('tailwind') ? 'text-xl font-semibold mb-3' : 'feature-title'}">
+            Responsive Design
+          </h3>
+          <p>Looks great on any device, from mobile phones to desktop computers.</p>
+        </div>
+        <div class="${techStacks.includes('tailwind') ? 'card' : 'card'}">
+          <h3 class="${techStacks.includes('tailwind') ? 'text-xl font-semibold mb-3' : 'feature-title'}">
+            Customizable
+          </h3>
+          <p>Easy to customize to match your brand and specific requirements.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script${isTypescript ? " lang=\"ts\"" : ""}>
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'HomeView'
+})
+</script>
+
+${!techStacks.includes('tailwind') ? 
+`<style scoped>
+.hero-section {
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  max-width: 42rem;
+  margin: 0 auto 2rem;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.features-section {
+  padding: 3rem 0;
+}
+
+.section-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 2rem;
+}
+
+.feature-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+</style>` : ''}
+`);
+
+  // About view
+  src?.folder("views")?.file("About.vue", `
+<template>
+  <div class="about">
+    <h1 class="${techStacks.includes('tailwind') ? 'text-3xl font-bold mb-6' : 'page-title'}">
+      About ${projectName}
+    </h1>
+    <p class="${techStacks.includes('tailwind') ? 'mb-4' : ''}">
+      ${projectDescription || 'This is a Vue.js project created with Vite.'}
+    </p>
+    <p class="${techStacks.includes('tailwind') ? 'mb-4' : ''}">
+      It features a modern tech stack with ${techStacks.join(', ')} to provide an optimal development experience.
+    </p>
+    
+    <div class="${techStacks.includes('tailwind') ? 'mt-8' : 'tech-stack-section'}">
+      <h2 class="${techStacks.includes('tailwind') ? 'text-2xl font-semibold mb-4' : 'section-subtitle'}">
+        Technology Stack
+      </h2>
+      <ul class="${techStacks.includes('tailwind') ? 'list-disc pl-6 space-y-2' : 'tech-list'}">
+        ${techStacks.map(tech => 
+          `<li>${tech.charAt(0).toUpperCase() + tech.slice(1)}</li>`
+        ).join('\n        ')}
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script${isTypescript ? " lang=\"ts\"" : ""}>
+import { defineComponent } from 'vue'
+
+export default defineComponent({
+  name: 'AboutView'
+})
+</script>
+
+${!techStacks.includes('tailwind') ? 
+`<style scoped>
+.page-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.tech-stack-section {
+  margin-top: 2rem;
+}
+
+.section-subtitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.tech-list {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.tech-list li {
+  margin-bottom: 0.5rem;
+}
+</style>` : ''}
+`);
+}
+
+// Helper function to create an Alpine.js project
+function createAlpineProject(
+  zip: JSZip, 
+  projectName: string, 
+  projectDescription: string, 
+  techStacks: string[],
+  themeColors: { primary: string, secondary: string, accent: string }
+): void {
+  // Create basic project structure
+  zip.folder("public");
+  zip.folder("src");
+  zip.folder("src/js");
+  zip.folder("src/css");
+  zip.folder("src/partials");
+  
+  const hasTailwind = techStacks.includes('tailwind');
+  
+  // Create index.html
+  zip.file("index.html", `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  ${hasTailwind ? 
+    '<script src="https://cdn.tailwindcss.com"></script>' :
+    '<link rel="stylesheet" href="./src/css/styles.css">'}
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="./src/js/app.js"></script>
+  ${hasTailwind ? `
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: "${themeColors.primary}",
+            secondary: "${themeColors.secondary}",
+            accent: "${themeColors.accent}",
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>` : ''}
+</head>
+<body class="${hasTailwind ? 
+  'font-sans antialiased min-h-screen bg-gray-100 dark:bg-gray-900 dark:text-white' : 
+  'font-sans antialiased min-h-screen'}" 
+  x-data="{ darkMode: false }" 
+  :class="{ 'dark': darkMode }">
+  
+  <!-- Header -->
+  <header class="${hasTailwind ? 
+    'bg-white dark:bg-gray-800 shadow-md' : 
+    'header'}">
+    <div class="${hasTailwind ? 
+      'container mx-auto px-4 py-4 flex justify-between items-center' : 
+      'container'}">
+      <div class="${hasTailwind ? 'text-xl font-bold' : 'logo'}">
+        ${projectName}
+      </div>
+      
+      <nav class="${hasTailwind ? 'hidden md:flex items-center space-x-6' : 'nav-links'}">
+        <a href="#" class="${hasTailwind ? 'hover:text-primary' : ''}">Home</a>
+        <a href="#features" class="${hasTailwind ? 'hover:text-primary' : ''}">Features</a>
+        <a href="#about" class="${hasTailwind ? 'hover:text-primary' : ''}">About</a>
+        <a href="#contact" class="${hasTailwind ? 'hover:text-primary' : ''}">Contact</a>
+      </nav>
+      
+      <button 
+        @click="darkMode = !darkMode"
+        class="${hasTailwind ? 
+          'p-2 rounded-full bg-gray-200 dark:bg-gray-700' : 
+          'theme-toggle'}"
+      >
+        <span x-show="!darkMode">🌙</span>
+        <span x-show="darkMode">☀️</span>
+      </button>
+      
+      <button 
+        @click="mobileMenu = !mobileMenu"
+        class="${hasTailwind ? 
+          'md:hidden p-2' : 
+          'mobile-toggle'}"
+        x-data="{ mobileMenu: false }" 
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Mobile menu -->
+    <div 
+      x-data="{ mobileMenu: false }" 
+      x-show="mobileMenu" 
+      class="${hasTailwind ? 
+        'md:hidden bg-white dark:bg-gray-800 shadow-md' : 
+        'mobile-menu'}"
+    >
+      <nav class="${hasTailwind ? 'px-4 pt-2 pb-4 space-y-3' : ''}">
+        <a href="#" class="${hasTailwind ? 'block hover:text-primary py-2' : 'mobile-link'}">Home</a>
+        <a href="#features" class="${hasTailwind ? 'block hover:text-primary py-2' : 'mobile-link'}">Features</a>
+        <a href="#about" class="${hasTailwind ? 'block hover:text-primary py-2' : 'mobile-link'}">About</a>
+        <a href="#contact" class="${hasTailwind ? 'block hover:text-primary py-2' : 'mobile-link'}">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="${hasTailwind ? 'container mx-auto px-4 py-8' : 'main-content'}">
+    <!-- Hero Section -->
+    <section class="${hasTailwind ? 'py-12 text-center' : 'hero-section'}">
+      <h1 class="${hasTailwind ? 'text-4xl font-bold mb-6' : 'hero-title'}">
+        Welcome to ${projectName}
+      </h1>
+      <p class="${hasTailwind ? 'text-xl max-w-2xl mx-auto mb-8' : 'hero-subtitle'}">
+        ${projectDescription || 'A modern web application built with Alpine.js'}
+      </p>
+      <div class="${hasTailwind ? 'flex justify-center gap-4' : 'cta-buttons'}">
+        <button class="${hasTailwind ? 
+          'px-4 py-2 bg-primary text-white font-medium rounded hover:bg-opacity-90 transition-colors' : 
+          'btn-primary'}">
+          Get Started
+        </button>
+        <button class="${hasTailwind ? 
+          'px-4 py-2 bg-gray-200 dark:bg-gray-700 font-medium rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors' : 
+          'btn-secondary'}">
+          Learn More
+        </button>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="${hasTailwind ? 'py-12' : 'features-section'}">
+      <h2 class="${hasTailwind ? 'text-3xl font-bold text-center mb-12' : 'section-title'}">
+        Key Features
+      </h2>
+      <div class="${hasTailwind ? 
+        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8' : 
+        'features-grid'}"
+        x-data="{
+          features: [
+            { 
+              title: 'Modern Stack', 
+              description: 'Built with Alpine.js and other modern technologies for better performance.' 
+            },
+            { 
+              title: 'Responsive Design', 
+              description: 'Looks great on any device, from mobile phones to desktop computers.' 
+            },
+            { 
+              title: 'Customizable', 
+              description: 'Easy to customize to match your brand and specific requirements.' 
+            }
+          ]
+        }"
+      >
+        <template x-for="feature in features" :key="feature.title">
+          <div class="${hasTailwind ? 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-6' : 'card'}">
+            <h3 class="${hasTailwind ? 'text-xl font-semibold mb-3' : 'feature-title'}" x-text="feature.title"></h3>
+            <p x-text="feature.description"></p>
+          </div>
+        </template>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="${hasTailwind ? 
+    'py-6 mt-8 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800' : 
+    'footer'}">
+    <div class="${hasTailwind ? 'container mx-auto px-4 text-center' : 'footer-container'}">
+      <p class="${hasTailwind ? 'text-sm text-gray-500 dark:text-gray-400' : 'copyright'}">
+        &copy; <span x-text="new Date().getFullYear()"></span> ${projectName}. All rights reserved.
+      </p>
+      <div class="${hasTailwind ? 'mt-4 flex justify-center space-x-4' : 'social-links'}">
+        <a href="#" class="${hasTailwind ? 'text-gray-400 hover:text-primary' : 'social-link'}">Twitter</a>
+        <a href="#" class="${hasTailwind ? 'text-gray-400 hover:text-primary' : 'social-link'}">GitHub</a>
+        <a href="#" class="${hasTailwind ? 'text-gray-400 hover:text-primary' : 'social-link'}">LinkedIn</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
+`);
+
+  // Create app.js
+  zip.file("src/js/app.js", `
+// Alpine.js main application
+document.addEventListener('alpine:init', () => {
+  // Define your Alpine.js data and methods here
+  Alpine.data('counter', () => ({
+    count: 0,
+    increment() {
+      this.count++;
+    },
+    decrement() {
+      this.count--;
+    }
+  }));
+  
+  // Dark mode toggle functionality
+  Alpine.data('darkMode', () => ({
+    dark: localStorage.getItem('dark') === 'true',
+    init() {
+      this.$watch('dark', (val) => {
+        localStorage.setItem('dark', val);
+      });
+    }
+  }));
+});
+
+// Feature data
+const featureData = [
+  {
+    title: 'Modern Stack',
+    description: 'Built with Alpine.js and modern web technologies for better performance and user experience.'
+  },
+  {
+    title: 'Responsive Design',
+    description: 'Looks great on any device, from mobile phones to desktop computers.'
+  },
+  {
+    title: 'Customizable',
+    description: 'Easy to customize to match your brand and specific requirements.'
+  }
+];
+`);
+
+  // Create CSS if not using Tailwind
+  if (!hasTailwind) {
+    zip.file("src/css/styles.css", `
+:root {
+  --primary-color: ${themeColors.primary};
+  --secondary-color: ${themeColors.secondary};
+  --accent-color: ${themeColors.accent};
+  --light-bg: #f9fafb;
+  --dark-bg: #111827;
+  --light-text: #1f2937;
+  --dark-text: #f9fafb;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  background-color: var(--light-bg);
+  color: var(--light-text);
+}
+
+body.dark {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
+}
+
+body.dark .header {
+  background-color: #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.nav-links {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .mobile-toggle {
+    display: none;
+  }
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-links a:hover {
+  color: var(--primary-color);
+}
+
+.theme-toggle {
+  padding: 0.5rem;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  background-color: #f3f4f6;
+}
+
+body.dark .theme-toggle {
+  background-color: #374151;
+}
+
+.mobile-menu {
+  padding: 1rem 0;
+  display: none;
+}
+
+.mobile-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.mobile-link:hover {
+  color: var(--primary-color);
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.hero-section {
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  max-width: 42rem;
+  margin: 0 auto 2rem;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: #e5e7eb;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+body.dark .btn-secondary {
+  background-color: #374151;
+}
+
+.btn-secondary:hover {
+  background-color: #d1d5db;
+}
+
+body.dark .btn-secondary:hover {
+  background-color: #4b5563;
+}
+
+.features-section {
+  padding: 3rem 0;
+}
+
+.section-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+}
+
+body.dark .card {
+  background-color: #1f2937;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+}
+
+.feature-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.footer {
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  background-color: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+body.dark .footer {
+  background-color: #1f2937;
+  border-top: 1px solid #374151;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.copyright {
+  color: #6b7280;
+}
+
+body.dark .copyright {
+  color: #9ca3af;
+}
+
+.social-links {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.social-link {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.social-link:hover {
+  color: var(--primary-color);
+}
+
+body.dark .social-link {
+  color: #9ca3af;
+}
+`);
+  }
+
+  // Create robots.txt
+  zip.file("robots.txt", `User-agent: *
+Allow: /
+`);
+
+  // Create README.md
+  zip.file("README.md", `# ${projectName}
+
+${projectDescription || 'A modern Alpine.js project'}
+
+## About
+
+This project is a lightweight web application built with Alpine.js${techStacks.includes('tailwind') ? ' and Tailwind CSS' : ''}.
+
+## Features
+
+- Responsive design for all devices
+- Dark mode toggle
+- Modern UI components
+- Simple and lightweight
+
+## Getting Started
+
+1. Clone the repository
+2. Open index.html in your browser or set up a local server
+   \`\`\`
+   npx serve
+   \`\`\`
+3. Start customizing the content and styles
+
+## Dependencies
+
+- Alpine.js: A minimal framework for composing JavaScript behavior
+${techStacks.includes('tailwind') ? '- Tailwind CSS: A utility-first CSS framework' : ''}
+
+## License
+
+MIT
+`);
+}
+
+// Helper function to create a basic HTML/CSS/JS project
+function createBasicProject(
+  zip: JSZip, 
+  projectName: string, 
+  projectDescription: string, 
+  techStacks: string[],
+  themeColors: { primary: string, secondary: string, accent: string }
+): void {
+  // Create basic project structure
+  zip.folder("css");
+  zip.folder("js");
+  zip.folder("images");
+  
+  const hasTailwind = techStacks.includes('tailwind');
+  
+  // Create index.html
+  zip.file("index.html", `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${projectName}</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  ${hasTailwind ? 
+    '<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">' :
+    '<link rel="stylesheet" href="./css/styles.css">'}
+  <script defer src="./js/script.js"></script>
+</head>
+<body class="${hasTailwind ? 'font-sans antialiased bg-gray-50 dark:bg-gray-900 dark:text-white' : ''}" data-theme="light">
+  
+  <!-- Header -->
+  <header class="${hasTailwind ? 'bg-white dark:bg-gray-800 shadow-md' : 'header'}">
+    <div class="${hasTailwind ? 'container mx-auto px-4 py-4 flex justify-between items-center' : 'container'}">
+      <div class="${hasTailwind ? 'text-xl font-bold' : 'logo'}">
+        ${projectName}
+      </div>
+      
+      <nav class="${hasTailwind ? 'hidden md:flex items-center space-x-6' : 'nav-links'}">
+        <a href="#" class="${hasTailwind ? 'hover:text-blue-600' : ''}">Home</a>
+        <a href="#features" class="${hasTailwind ? 'hover:text-blue-600' : ''}">Features</a>
+        <a href="#about" class="${hasTailwind ? 'hover:text-blue-600' : ''}">About</a>
+        <a href="#contact" class="${hasTailwind ? 'hover:text-blue-600' : ''}">Contact</a>
+      </nav>
+      
+      <button 
+        id="theme-toggle"
+        class="${hasTailwind ? 
+          'p-2 rounded-full bg-gray-200 dark:bg-gray-700' : 
+          'theme-toggle'}"
+      >
+        <span id="theme-toggle-icon">🌙</span>
+      </button>
+      
+      <button 
+        id="mobile-toggle"
+        class="${hasTailwind ? 
+          'md:hidden p-2' : 
+          'mobile-toggle'}"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Mobile menu -->
+    <div 
+      id="mobile-menu"
+      class="${hasTailwind ? 
+        'hidden md:hidden bg-white dark:bg-gray-800 shadow-md' : 
+        'mobile-menu'}"
+    >
+      <nav class="${hasTailwind ? 'px-4 pt-2 pb-4 space-y-3' : ''}">
+        <a href="#" class="${hasTailwind ? 'block hover:text-blue-600 py-2' : 'mobile-link'}">Home</a>
+        <a href="#features" class="${hasTailwind ? 'block hover:text-blue-600 py-2' : 'mobile-link'}">Features</a>
+        <a href="#about" class="${hasTailwind ? 'block hover:text-blue-600 py-2' : 'mobile-link'}">About</a>
+        <a href="#contact" class="${hasTailwind ? 'block hover:text-blue-600 py-2' : 'mobile-link'}">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="${hasTailwind ? 'container mx-auto px-4 py-8' : 'main-content'}">
+    <!-- Hero Section -->
+    <section class="${hasTailwind ? 'py-12 text-center' : 'hero-section'}">
+      <h1 class="${hasTailwind ? 'text-4xl font-bold mb-6' : 'hero-title'}">
+        Welcome to ${projectName}
+      </h1>
+      <p class="${hasTailwind ? 'text-xl max-w-2xl mx-auto mb-8' : 'hero-subtitle'}">
+        ${projectDescription || 'A modern web application built with HTML, CSS and JavaScript'}
+      </p>
+      <div class="${hasTailwind ? 'flex justify-center gap-4' : 'cta-buttons'}">
+        <button class="${hasTailwind ? 
+          'px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition-colors' : 
+          'btn-primary'}">
+          Get Started
+        </button>
+        <button class="${hasTailwind ? 
+          'px-4 py-2 bg-gray-200 dark:bg-gray-700 font-medium rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors' : 
+          'btn-secondary'}">
+          Learn More
+        </button>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="${hasTailwind ? 'py-12' : 'features-section'}">
+      <h2 class="${hasTailwind ? 'text-3xl font-bold text-center mb-12' : 'section-title'}">
+        Key Features
+      </h2>
+      <div class="${hasTailwind ? 
+        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8' : 
+        'features-grid'}" id="features-container">
+        <!-- Features will be added here by JavaScript -->
+      </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="${hasTailwind ? 'py-12' : 'about-section'}">
+      <h2 class="${hasTailwind ? 'text-3xl font-bold text-center mb-8' : 'section-title'}">
+        About ${projectName}
+      </h2>
+      <div class="${hasTailwind ? 'max-w-3xl mx-auto' : ''}">
+        <p class="${hasTailwind ? 'mb-4' : ''}">
+          ${projectDescription || 'This is a modern web application built with standard web technologies.'}
+        </p>
+        <p>
+          Our goal is to provide a clean, responsive, and accessible user interface that delivers an excellent user experience on all devices.
+        </p>
+        
+        <h3 class="${hasTailwind ? 'text-xl font-semibold mt-6 mb-4' : 'subsection-title'}">Technology Stack</h3>
+        <ul class="${hasTailwind ? 'list-disc pl-6 space-y-2' : 'tech-list'}">
+          ${techStacks.map(tech => 
+            `<li>${tech.charAt(0).toUpperCase() + tech.slice(1)}</li>`
+          ).join('\n          ')}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="${hasTailwind ? 'py-12' : 'contact-section'}">
+      <h2 class="${hasTailwind ? 'text-3xl font-bold text-center mb-8' : 'section-title'}">
+        Contact Us
+      </h2>
+      <div class="${hasTailwind ? 'max-w-xl mx-auto' : 'contact-container'}">
+        <form id="contact-form" class="${hasTailwind ? 'space-y-4' : 'contact-form'}">
+          <div>
+            <label for="name" class="${hasTailwind ? 'block text-sm font-medium mb-1' : 'form-label'}">Name</label>
+            <input 
+              type="text" 
+              id="name" 
+              name="name" 
+              required 
+              class="${hasTailwind ? 
+                'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600' : 
+                'form-input'}"
+            >
+          </div>
+          <div>
+            <label for="email" class="${hasTailwind ? 'block text-sm font-medium mb-1' : 'form-label'}">Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              required 
+              class="${hasTailwind ? 
+                'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600' : 
+                'form-input'}"
+            >
+          </div>
+          <div>
+            <label for="message" class="${hasTailwind ? 'block text-sm font-medium mb-1' : 'form-label'}">Message</label>
+            <textarea 
+              id="message" 
+              name="message" 
+              rows="4" 
+              required 
+              class="${hasTailwind ? 
+                'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600' : 
+                'form-textarea'}"
+            ></textarea>
+          </div>
+          <button 
+            type="submit" 
+            class="${hasTailwind ? 
+              'w-full px-4 py-2 bg-blue-600 text-white font-medium rounded hover:bg-blue-700 transition-colors' : 
+              'btn-primary'}"
+          >
+            Send Message
+          </button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="${hasTailwind ? 
+    'py-6 mt-8 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800' : 
+    'footer'}">
+    <div class="${hasTailwind ? 'container mx-auto px-4 text-center' : 'footer-container'}">
+      <p class="${hasTailwind ? 'text-sm text-gray-500 dark:text-gray-400' : 'copyright'}">
+        &copy; <span id="current-year"></span> ${projectName}. All rights reserved.
+      </p>
+      <div class="${hasTailwind ? 'mt-4 flex justify-center space-x-4' : 'social-links'}">
+        <a href="#" class="${hasTailwind ? 'text-gray-400 hover:text-blue-600' : 'social-link'}">Twitter</a>
+        <a href="#" class="${hasTailwind ? 'text-gray-400 hover:text-blue-600' : 'social-link'}">GitHub</a>
+        <a href="#" class="${hasTailwind ? 'text-gray-400 hover:text-blue-600' : 'social-link'}">LinkedIn</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
+`);
+
+  // Create JavaScript
+  zip.file("js/script.js", `
+// Feature data
+const features = [
+  {
+    title: 'Modern Design',
+    description: 'Clean and modern UI built with contemporary web standards.'
+  },
+  {
+    title: 'Responsive Layout',
+    description: 'Looks great on any device, from mobile phones to desktop computers.'
+  },
+  {
+    title: 'Customizable',
+    description: 'Easy to customize to match your brand and specific requirements.'
+  }
+];
+
+// DOM elements
+const themeToggle = document.getElementById('theme-toggle');
+const themeToggleIcon = document.getElementById('theme-toggle-icon');
+const mobileToggle = document.getElementById('mobile-toggle');
+const mobileMenu = document.getElementById('mobile-menu');
+const featuresContainer = document.getElementById('features-container');
+const contactForm = document.getElementById('contact-form');
+const currentYearElement = document.getElementById('current-year');
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  renderFeatures();
+  setupEventListeners();
+  currentYearElement.textContent = new Date().getFullYear();
+});
+
+// Initialize theme based on user preference or localStorage
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.body.dataset.theme = savedTheme;
+  updateThemeToggleIcon(savedTheme);
+}
+
+// Update the theme toggle icon based on current theme
+function updateThemeToggleIcon(theme) {
+  themeToggleIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+// Toggle between light and dark themes
+function toggleTheme() {
+  const currentTheme = document.body.dataset.theme;
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  document.body.dataset.theme = newTheme;
+  localStorage.setItem('theme', newTheme);
+  updateThemeToggleIcon(newTheme);
+}
+
+// Render features dynamically
+function renderFeatures() {
+  featuresContainer.innerHTML = '';
+  
+  features.forEach(feature => {
+    const featureCard = document.createElement('div');
+    featureCard.className = document.body.classList.contains('tailwind') ? 
+      'bg-white dark:bg-gray-800 rounded-lg shadow-md p-6' : 
+      'card';
+    
+    const title = document.createElement('h3');
+    title.className = document.body.classList.contains('tailwind') ? 
+      'text-xl font-semibold mb-3' : 
+      'feature-title';
+    title.textContent = feature.title;
+    
+    const description = document.createElement('p');
+    description.textContent = feature.description;
+    
+    featureCard.appendChild(title);
+    featureCard.appendChild(description);
+    featuresContainer.appendChild(featureCard);
+  });
+}
+
+// Set up event listeners
+function setupEventListeners() {
+  // Theme toggle
+  themeToggle.addEventListener('click', toggleTheme);
+  
+  // Mobile menu toggle
+  mobileToggle.addEventListener('click', () => {
+    mobileMenu.classList.toggle('hidden');
+  });
+  
+  // Contact form submission
+  contactForm.addEventListener('submit', handleFormSubmit);
+  
+  // Close mobile menu when clicking outside
+  document.addEventListener('click', (event) => {
+    if (!mobileMenu.contains(event.target) && !mobileToggle.contains(event.target) && !mobileMenu.classList.contains('hidden')) {
+      mobileMenu.classList.add('hidden');
+    }
+  });
+  
+  // Handle anchor links smoothly
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      
+      // Close mobile menu if open
+      if (!mobileMenu.classList.contains('hidden')) {
+        mobileMenu.classList.add('hidden');
+      }
+      
+      const targetId = this.getAttribute('href').substring(1);
+      if (!targetId) return; // Handle empty href="#"
+      
+      const targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        targetElement.scrollIntoView({
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+}
+
+// Handle form submission
+function handleFormSubmit(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(contactForm);
+  const formValues = {};
+  
+  for (let [key, value] of formData.entries()) {
+    formValues[key] = value;
+  }
+  
+  // In a real application, you would send this data to your backend
+  console.log('Form submitted with:', formValues);
+  
+  // Show success message
+  alert('Thank you for your message! We will get back to you soon.');
+  contactForm.reset();
+}
+`);
+
+  // Create CSS if not using Tailwind
+  if (!hasTailwind) {
+    zip.file("css/styles.css", `
+:root {
+  --primary-color: ${themeColors.primary};
+  --secondary-color: ${themeColors.secondary};
+  --accent-color: ${themeColors.accent};
+  --light-bg: #f9fafb;
+  --dark-bg: #111827;
+  --light-text: #1f2937;
+  --dark-text: #f9fafb;
+  --light-card-bg: #ffffff;
+  --dark-card-bg: #1f2937;
+  --light-input-bg: #ffffff;
+  --dark-input-bg: #374151;
+  --light-border: #e5e7eb;
+  --dark-border: #4b5563;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  background-color: var(--light-bg);
+  color: var(--light-text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+body[data-theme="dark"] {
+  background-color: var(--dark-bg);
+  color: var(--dark-text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header {
+  background-color: var(--light-card-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background-color 0.3s;
+}
+
+body[data-theme="dark"] .header {
+  background-color: var(--dark-card-bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.nav-links {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .mobile-toggle {
+    display: none;
+  }
+}
+
+.nav-links a:hover {
+  color: var(--primary-color);
+}
+
+.theme-toggle, 
+.mobile-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle {
+  background-color: var(--light-border);
+  border-radius: 9999px;
+  height: 36px;
+  width: 36px;
+}
+
+body[data-theme="dark"] .theme-toggle {
+  background-color: var(--dark-border);
+}
+
+.mobile-menu {
+  padding: 1rem 0;
+  display: none;
+  background-color: var(--light-card-bg);
+}
+
+body[data-theme="dark"] .mobile-menu {
+  background-color: var(--dark-card-bg);
+}
+
+.mobile-menu.hidden {
+  display: none;
+}
+
+.mobile-link {
+  display: block;
+  padding: 0.5rem 1rem;
+}
+
+.mobile-link:hover {
+  color: var(--primary-color);
+}
+
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.hero-section {
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  max-width: 42rem;
+  margin: 0 auto 2rem;
+}
+
+.cta-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background-color: var(--light-border);
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+body[data-theme="dark"] .btn-secondary {
+  background-color: var(--dark-border);
+}
+
+.btn-secondary:hover {
+  opacity: 0.9;
+}
+
+.section-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.subsection-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem;
+}
+
+.features-section,
+.about-section,
+.contact-section {
+  padding: 3rem 0;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .features-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  background-color: var(--light-card-bg);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  transition: background-color 0.3s;
+}
+
+body[data-theme="dark"] .card {
+  background-color: var(--dark-card-bg);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.12);
+}
+
+.feature-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.contact-container {
+  max-width: 36rem;
+  margin: 0 auto;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--light-border);
+  border-radius: 0.25rem;
+  background-color: var(--light-input-bg);
+  transition: border-color 0.2s, background-color 0.3s;
+}
+
+body[data-theme="dark"] .form-input,
+body[data-theme="dark"] .form-textarea {
+  border-color: var(--dark-border);
+  background-color: var(--dark-input-bg);
+  color: var(--dark-text);
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.tech-list {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.footer {
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  background-color: var(--light-card-bg);
+  border-top: 1px solid var(--light-border);
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+body[data-theme="dark"] .footer {
+  background-color: var(--dark-card-bg);
+  border-top-color: var(--dark-border);
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  text-align: center;
+}
+
+.copyright {
+  color: #6b7280;
+}
+
+body[data-theme="dark"] .copyright {
+  color: #9ca3af;
+}
+
+.social-links {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.social-link {
+  color: #6b7280;
+}
+
+.social-link:hover {
+  color: var(--primary-color);
+}
+
+body[data-theme="dark"] .social-link {
+  color: #9ca3af;
+}
+`);
+  }
+
+  // Create README.md
+  zip.file("README.md", `# ${projectName}
+
+${projectDescription || 'A modern web project'}
+
+## About
+
+This project is a lightweight web application built with standard web technologies${techStacks.includes('tailwind') ? ' including Tailwind CSS' : ''}.
+
+## Features
+
+- Responsive design for all devices
+- Dark/light mode toggle
+- Contact form
+- Modern UI
+
+## Getting Started
+
+1. Clone the repository
+2. Open index.html in your browser or set up a local server
+   \`\`\`
+   npx serve
+   \`\`\`
+3. Start customizing the content and styles
+
+## Technologies Used
+
+${techStacks.map(tech => '- ' + tech.charAt(0).toUpperCase() + tech.slice(1)).join('\n')}
+
+## License
+
+MIT
+`);
+}
+
+// Integrate with GROQ API for AI-powered generation
+export const integrateWithGroq = async (
+  projectName: string,
+  projectDescription: string,
+  techStack: string[],
+  pages: { name: string; path: string; description: string }[]
+): Promise<string> => {
+  try {
+    if (!GROQ_API_KEY) {
+      throw new Error("GROQ API key is not configured. Using template-based generation instead.");
+    }
+
+    // Create a new JSZip instance
+    const zip = new JSZip();
+    
+    // Set up the prompt for GROQ API
+    const prompt = `
+      Generate a web project called "${projectName}" with the following description: "${projectDescription}".
+      The project uses the following technologies: ${techStack.join(", ")}.
+      
+      The project should have these pages:
+      ${pages.map(page => `- ${page.name} (${page.path}): ${page.description}`).join("\n")}
+      
+      Please provide complete, working code for all necessary files including:
+      1. HTML files for each page
+      2. CSS styles (Tailwind classes or custom CSS based on tech stack)
+      3. JavaScript/TypeScript functionality
+      4. Package.json and configuration files
+      5. README.md
+      
+      Make sure the code is well-structured, follows best practices, and is fully functional.
+      Use modern features and techniques appropriate for the chosen tech stack.
+    `;
+
+    // Call GROQ API
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mixtral-8x7b-32768",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert full-stack developer who creates comprehensive, production-ready web applications with clean, optimized code."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_tokens: 32000,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to generate project with GROQ API");
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+
+    // Extract file content using regex
+    const fileRegex = /```(?:html|css|javascript|typescript|js|ts|jsx|tsx|json|md|bash)(?:[^\n]*)\s*([\s\S]*?)```/g;
+    let match;
+    let fileCount = 0;
+
+    while ((match = fileRegex.exec(content)) !== null) {
+      const fileContent = match[1].trim();
+      const fileTypeMatch = match[0].match(/```(\w+)/);
+      const fileType = fileTypeMatch ? fileTypeMatch[1] : "txt";
+      
+      // Try to extract filename from comments or code context
+      const fileNameMatch = fileContent.match(/(?:^|\n)(?:\/\/|\/\*|#|<!--)\s*filename:\s*([^\n\*\/]+)/i);
+      const fileName = fileNameMatch 
+        ? fileNameMatch[1].trim() 
+        : `file-${fileCount}.${getExtensionFromType(fileType)}`;
+      
+      zip.file(fileName, fileContent);
+      fileCount++;
+    }
+    
+    // If no files were extracted using regex, create a basic structure
+    if (fileCount === 0) {
+      // Extract what appear to be code blocks even without proper markdown formatting
+      const basicCodeBlockRegex = /(?:(?:\/\/|\/\*|#|<!--)\s*filename:\s*([^\n\*\/]+)[^\n]*\n)([\s\S]*?)(?:\n\s*(?:\/\/|\/\*|#|<!--)\s*end\s*(?:\*\/|-->)?|$)/gi;
+      let basicMatch;
+      
+      while ((basicMatch = basicCodeBlockRegex.exec(content)) !== null) {
+        const fileName = basicMatch[1].trim();
+        const fileContent = basicMatch[2].trim();
+        
+        if (fileName && fileContent) {
+          zip.file(fileName, fileContent);
+          fileCount++;
+        }
+      }
+      
+      // If still no files, create a minimal project
+      if (fileCount === 0) {
+        const themeColors = getThemeColors("blue");
+        
+        if (techStack.includes("react")) {
+          createReactProject(zip, projectName, projectDescription, techStack, themeColors);
+        } else if (techStack.includes("vue")) {
+          createVueProject(zip, projectName, projectDescription, techStack, themeColors);
+        } else if (techStack.includes("alpine")) {
+          createAlpineProject(zip, projectName, projectDescription, techStack, themeColors);
+        } else {
+          createBasicProject(zip, projectName, projectDescription, techStack, themeColors);
+        }
+        
+        // Add a note about the fallback
+        zip.file("README.md", `# ${projectName}
+
+${projectDescription}
+
+## About This Project
+
+This project was generated using the AI Template Generator with the following configuration:
+
+- Project Name: ${projectName}
+- Tech Stack: ${techStack.join(', ')}
+
+**Note:** This is a fallback template as the AI-generated content couldn't be parsed correctly.
+
+## Pages
+
+${pages.map(page => `- ${page.name} (${page.path}): ${page.description}`).join('\n')}
+
+## Getting Started
+
+1. Extract the ZIP file
+2. Open the folder in your favorite code editor
+3. Follow the setup instructions in the specific technology documentation
+
+## License
+
+MIT
+`);
+      }
+    }
+
+    // Generate the zip file
+    const zipContent = await zip.generateAsync({ type: "blob" });
+    
+    // Return the download URL
+    return URL.createObjectURL(zipContent);
+  } catch (error) {
+    console.error("Error in AI project generation:", error);
+    // Fall back to template-based generation
+    const themeColors = getThemeColors("blue");
+    return generateCustomProject(projectName, projectDescription, techStack, "blue");
+  }
+};
+
+// Helper to determine file extension from code type
+function getExtensionFromType(fileType: string): string {
+  const typeToExt: Record<string, string> = {
+    html: "html",
+    css: "css",
+    javascript: "js",
+    js: "js",
+    typescript: "ts",
+    ts: "ts",
+    jsx: "jsx",
+    tsx: "tsx",
+    json: "json",
+    md: "md",
+    bash: "sh"
+  };
+  
+  return typeToExt[fileType] || "txt";
+}
+
+// Exporting AI service integration
+export const generateProject = async (project: any): Promise<any> => {
+  // This is a wrapper for the AI service, maintained for backward compatibility
+  return project;
+};
+
+export const downloadProject = async (project: any): Promise<string> => {
+  try {
+    // Generate project using selected tech stacks as a fallback
+    return generateCustomProject(
+      project.projectName, 
+      project.description,
+      ["react", "tailwind"],
+      "blue"
+    );
+  } catch (error) {
+    console.error("Error downloading project:", error);
+    throw new Error("Failed to download project");
+  }
+};
