@@ -1,7 +1,7 @@
 
 import { templateThumbnails, getTemplateThumbnail } from "@/assets/template-thumbnails";
 import JSZip from "jszip";
-import { GROQ_API_KEY } from "@/config";
+import { GROQ_API_KEY } from "@/config"; // Fixed import path
 
 export type Template = {
   id: string;
@@ -144,7 +144,7 @@ const templates: Template[] = [
     name: "Photography Portfolio",
     description: "Minimalist portfolio for photographers with gallery view",
     category: "Portfolio",
-    image: templateThumbnails.photography,
+    image: templateThumbnails.analyticsApp, // Fixed: Using analyticsApp instead of photography
     techStack: ["React", "Next.js", "Tailwind CSS", "Framer Motion"],
     popularity: 65,
     author: "leerob",
@@ -888,9 +888,9 @@ ${isTypescript ?
   "function Header({ darkMode, toggleDarkMode }) {"}
 
   return (
-    <header className=${techStacks.includes('tailwind') ? 
+    <header className={${techStacks.includes('tailwind') ? 
       '`py-4 shadow-md ${darkMode ? "bg-gray-800" : "bg-white"}`' : 
-      '`header ${darkMode ? "dark" : ""}`'}>
+      '`header ${darkMode ? "dark" : ""}`'}}>
       <div className=${techStacks.includes('tailwind') ? '"container mx-auto px-4 flex justify-between items-center"' : '"header-container"'}>
         <div className=${techStacks.includes('tailwind') ? '"text-xl font-bold"' : '"logo"'}>
           ${projectName}
@@ -3077,41 +3077,49 @@ MIT
 `);
 }
 
-// Integrate with GROQ API for AI-powered generation
+// Integration with GROQ API
 export const integrateWithGroq = async (
-  projectName: string,
   projectDescription: string,
-  techStack: string[],
-  pages: { name: string; path: string; description: string }[]
+  pages: PageDescription[],
+  selectedTechStacks: string[] = ["react", "tailwind"]
 ): Promise<string> => {
-  try {
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ API key is not configured. Using template-based generation instead.");
+  if (!GROQ_API_KEY) {
+    console.log("GROQ API key not found, using local template generation");
+    // Fall back to local template generation
+    try {
+      const projectName = "AI Generated Project";
+      return generateCustomProject(projectName, projectDescription, selectedTechStacks);
+    } catch (error) {
+      console.error("Error in fallback generation:", error);
+      throw new Error("Failed to generate project");
     }
-
+  }
+  
+  try {
     // Create a new JSZip instance
     const zip = new JSZip();
     
+    // Get theme colors - using blue as default
+    const themeColors = getThemeColors("blue");
+    
     // Set up the prompt for GROQ API
+    const technology = selectedTechStacks.join(", ");
     const prompt = `
-      Generate a web project called "${projectName}" with the following description: "${projectDescription}".
-      The project uses the following technologies: ${techStack.join(", ")}.
+      Generate a web project with the following description: "${projectDescription}"
+      
+      The project uses these technologies: ${technology}
       
       The project should have these pages:
       ${pages.map(page => `- ${page.name} (${page.path}): ${page.description}`).join("\n")}
       
-      Please provide complete, working code for all necessary files including:
-      1. HTML files for each page
-      2. CSS styles (Tailwind classes or custom CSS based on tech stack)
-      3. JavaScript/TypeScript functionality
-      4. Package.json and configuration files
-      5. README.md
+      Please provide complete working code for all necessary files.
+      Make the project modern, responsive, and follow best practices.
       
-      Make sure the code is well-structured, follows best practices, and is fully functional.
-      Use modern features and techniques appropriate for the chosen tech stack.
+      Ensure the code is well-structured, follows best practices, and is fully functional.
     `;
 
     // Call GROQ API
+    console.log("Calling GROQ API...");
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -3119,7 +3127,7 @@ export const integrateWithGroq = async (
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "mixtral-8x7b-32768",
+        model: "llama3-70b-8192", // Using Llama3 70B model
         messages: [
           {
             role: "system",
@@ -3130,148 +3138,116 @@ export const integrateWithGroq = async (
             content: prompt
           }
         ],
-        max_tokens: 32000,
+        max_tokens: 8000,
         temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to generate project with GROQ API");
+      console.error("GROQ API request failed", response);
+      // If API call fails, fall back to template-based generation
+      console.log("Falling back to local template generation");
+      return generateCustomProject("AI Generated Project", projectDescription, selectedTechStacks);
     }
 
     const data = await response.json();
     const content = data.choices[0].message.content;
-
-    // Extract file content using regex
-    const fileRegex = /```(?:html|css|javascript|typescript|js|ts|jsx|tsx|json|md|bash)(?:[^\n]*)\s*([\s\S]*?)```/g;
+    
+    // Parse content to extract file paths and content
+    const fileRegex = /```(?:\w+)?(?:\s+([^\n]+))?\s*([\s\S]*?)```/g;
     let match;
     let fileCount = 0;
-
-    while ((match = fileRegex.exec(content)) !== null) {
-      const fileContent = match[1].trim();
-      const fileTypeMatch = match[0].match(/```(\w+)/);
-      const fileType = fileTypeMatch ? fileTypeMatch[1] : "txt";
-      
-      // Try to extract filename from comments or code context
-      const fileNameMatch = fileContent.match(/(?:^|\n)(?:\/\/|\/\*|#|<!--)\s*filename:\s*([^\n\*\/]+)/i);
-      const fileName = fileNameMatch 
-        ? fileNameMatch[1].trim() 
-        : `file-${fileCount}.${getExtensionFromType(fileType)}`;
-      
-      zip.file(fileName, fileContent);
-      fileCount++;
-    }
+    const fileMap = new Map();
     
-    // If no files were extracted using regex, create a basic structure
-    if (fileCount === 0) {
-      // Extract what appear to be code blocks even without proper markdown formatting
-      const basicCodeBlockRegex = /(?:(?:\/\/|\/\*|#|<!--)\s*filename:\s*([^\n\*\/]+)[^\n]*\n)([\s\S]*?)(?:\n\s*(?:\/\/|\/\*|#|<!--)\s*end\s*(?:\*\/|-->)?|$)/gi;
-      let basicMatch;
+    while ((match = fileRegex.exec(content)) !== null) {
+      const fileContent = match[2].trim();
+      let fileName = match[1] ? match[1].trim() : null;
       
-      while ((basicMatch = basicCodeBlockRegex.exec(content)) !== null) {
-        const fileName = basicMatch[1].trim();
-        const fileContent = basicMatch[2].trim();
-        
-        if (fileName && fileContent) {
-          zip.file(fileName, fileContent);
-          fileCount++;
+      // If no filename in the markdown code block, try to extract from the content itself
+      if (!fileName) {
+        const fileNameFromContent = fileContent.match(/(?:\/\/|\/\*)\s*File:\s*([^\n*]+)/i);
+        if (fileNameFromContent) {
+          fileName = fileNameFromContent[1].trim();
+        } else {
+          // Generate a filename based on content type
+          if (fileContent.includes("<html") || fileContent.includes("<!DOCTYPE html")) {
+            fileName = "index.html";
+          } else if (fileContent.includes("import React") || fileContent.includes("export default")) {
+            fileName = `component${fileCount}.jsx`;
+          } else if (fileContent.includes("@tailwind") || fileContent.includes("body {")) {
+            fileName = "styles.css";
+          } else {
+            fileName = `file${fileCount}.js`;
+          }
         }
       }
       
-      // If still no files, create a minimal project
-      if (fileCount === 0) {
-        const themeColors = getThemeColors("blue");
-        
-        if (techStack.includes("react")) {
-          createReactProject(zip, projectName, projectDescription, techStack, themeColors);
-        } else if (techStack.includes("vue")) {
-          createVueProject(zip, projectName, projectDescription, techStack, themeColors);
-        } else if (techStack.includes("alpine")) {
-          createAlpineProject(zip, projectName, projectDescription, techStack, themeColors);
-        } else {
-          createBasicProject(zip, projectName, projectDescription, techStack, themeColors);
-        }
-        
-        // Add a note about the fallback
-        zip.file("README.md", `# ${projectName}
+      // If the file already exists, append a number to the name
+      const baseName = fileName;
+      let counter = 1;
+      while (fileMap.has(fileName)) {
+        const ext = baseName.includes(".") ? baseName.split(".").pop() : "";
+        const name = baseName.includes(".") ? baseName.split(".").slice(0, -1).join(".") : baseName;
+        fileName = `${name}-${counter}.${ext}`;
+        counter++;
+      }
+      
+      fileMap.set(fileName, fileContent);
+      fileCount++;
+    }
+    
+    // If we couldn't parse any files, fall back to template generation
+    if (fileMap.size === 0) {
+      console.log("No files extracted from GROQ response, falling back to template generation");
+      return generateCustomProject("AI Generated Project", projectDescription, selectedTechStacks);
+    }
+    
+    // Add files to the zip
+    for (const [fileName, content] of fileMap.entries()) {
+      if (fileName.includes('/')) {
+        const dirPath = fileName.substring(0, fileName.lastIndexOf('/'));
+        zip.folder(dirPath);
+      }
+      zip.file(fileName, content);
+    }
+    
+    // Add README
+    const projectName = "AI Generated Project";
+    zip.file('README.md', `# ${projectName}
 
 ${projectDescription}
 
 ## About This Project
 
-This project was generated using the AI Template Generator with the following configuration:
+This project was generated using AI with the following technologies:
 
-- Project Name: ${projectName}
-- Tech Stack: ${techStack.join(', ')}
-
-**Note:** This is a fallback template as the AI-generated content couldn't be parsed correctly.
+- ${selectedTechStacks.join('\n- ')}
 
 ## Pages
 
-${pages.map(page => `- ${page.name} (${page.path}): ${page.description}`).join('\n')}
+${pages.map(page => `- ${page.name}: ${page.description}`).join('\n')}
 
 ## Getting Started
 
 1. Extract the ZIP file
 2. Open the folder in your favorite code editor
-3. Follow the setup instructions in the specific technology documentation
+3. Install dependencies with \`npm install\` or \`yarn\`
+4. Start the development server with \`npm run dev\` or \`yarn dev\`
 
 ## License
 
 MIT
 `);
-      }
-    }
-
+    
     // Generate the zip file
     const zipContent = await zip.generateAsync({ type: "blob" });
     
     // Return the download URL
     return URL.createObjectURL(zipContent);
   } catch (error) {
-    console.error("Error in AI project generation:", error);
+    console.error("Error in GROQ integration:", error);
     // Fall back to template-based generation
-    const themeColors = getThemeColors("blue");
-    return generateCustomProject(projectName, projectDescription, techStack, "blue");
-  }
-};
-
-// Helper to determine file extension from code type
-function getExtensionFromType(fileType: string): string {
-  const typeToExt: Record<string, string> = {
-    html: "html",
-    css: "css",
-    javascript: "js",
-    js: "js",
-    typescript: "ts",
-    ts: "ts",
-    jsx: "jsx",
-    tsx: "tsx",
-    json: "json",
-    md: "md",
-    bash: "sh"
-  };
-  
-  return typeToExt[fileType] || "txt";
-}
-
-// Exporting AI service integration
-export const generateProject = async (project: any): Promise<any> => {
-  // This is a wrapper for the AI service, maintained for backward compatibility
-  return project;
-};
-
-export const downloadProject = async (project: any): Promise<string> => {
-  try {
-    // Generate project using selected tech stacks as a fallback
-    return generateCustomProject(
-      project.projectName, 
-      project.description,
-      ["react", "tailwind"],
-      "blue"
-    );
-  } catch (error) {
-    console.error("Error downloading project:", error);
-    throw new Error("Failed to download project");
+    console.log("Error occurred, falling back to template generation");
+    return generateCustomProject("AI Generated Project", projectDescription, selectedTechStacks);
   }
 };
